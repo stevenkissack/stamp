@@ -1,0 +1,24 @@
+<!doctype html>
+<html ng-app="app" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Stamp Test App</title>
+  <link rel="stylesheet" type="text/css" href="externals/bootstrap/css/bootstrap.css">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  
+  <script type="text/javascript" src="externals/angular.js"></script>
+  <script type="text/javascript" src="externals/ui-bootstrap-tpls-1.3.3.js"></script>
+  
+  <!-- Stamp -->
+  <script type="text/javascript" src="../dist/stamp-bundle.js"></script>
+  
+  <!-- Angular Stamp module -->
+  <script type="text/javascript" src="../dist/transpiled/angular/stamp.js"></script>
+  
+  <!-- Angular App -->
+  <script type="text/javascript" src="app.js"></script>
+</head>
+<body ng-controller="AppCtrl">
+  <stamp-editor ng-model="stampMarkup"></stamp-editor>
+</body>
+</html>

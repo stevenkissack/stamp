@@ -1,0 +1,36 @@
+{
+  "name": "stamp",
+  "version": "0.0.1",
+  "description": "A visual component based HTML builder",
+  "scripts": {
+    "build": "rimraf dist && webpack --bail --progress --profile",
+    "server": "webpack-dev-server --history-api-fallback --inline --progress",
+    "test": "karma start",
+    "test-watch": "karma start --auto-watch --no-single-run",
+    "start": "npm run server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stevokk/stamp.git"
+  },
+  "author": "Steven Kissack",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/stevokk/stamp/issues"
+  },
+  "homepage": "https://github.com/stevokk/stamp",
+  "dependencies": {
+    "angular": "^1.5.0"
+  },
+  "devDependencies": {
+    "babel-preset-es2015": "^6.9.0",
+    "browser-sync": "^2.12.8",
+    "browserify": "^13.0.1",
+    "del": "^2.2.0",
+    "gulp": "^3.9.1",
+    "gulp-babel": "^6.1.2",
+    "gulp-concat": "^2.6.0",
+    "gulp-sourcemaps": "^1.6.0",
+    "vinyl-source-stream": "^1.1.0"
+  }
+}
