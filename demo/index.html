@@ -19,6 +19,10 @@
   <script type="text/javascript" src="app.js"></script>
 </head>
 <body ng-controller="AppCtrl">
-  <stamp-editor ng-model="stampMarkup"></stamp-editor>
+  <h3>Stamp Editor:</h3>
+  <stamp-editor sp-locked="false" sp-read-only="false" ng-model="stampMarkup"></stamp-editor>
+  
+  <h3>Data:</h3>
+  <pre>{{stampMarkup | json}}</pre>
 </body>
 </html>
