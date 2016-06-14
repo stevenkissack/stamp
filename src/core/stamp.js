@@ -78,6 +78,9 @@ class Stamp {
 
 Stamp.components = {}
 Stamp.layouts = {}
+
+// Should it be an object mapping types of files/content?
+// e.g {'image': [handler, handler, ...]}
 Stamp.dropHandlers = []
 
 Stamp.register = {
