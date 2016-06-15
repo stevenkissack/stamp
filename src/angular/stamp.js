@@ -3,11 +3,11 @@
 (function() {
 	var stamp = angular.module('stamp', [])
 	stamp.value('stampConfig', {})
-  	stamp.directive('stampEditor', ['$rootScope', '$compile', '$timeout', '$window', 'stampConfig', function($rootScope, $compile, $timeout, $window, stampConfig) {
+  stamp.directive('stampEditor', ['$rootScope', '$compile', '$timeout', '$window', 'stampConfig', function($rootScope, $compile, $timeout, $window, stampConfig) {
     stampConfig = stampConfig || {}
-	
-	var generatedIds = 0
-    var ID_ATTR = 'ui-stamp-editor-'
+    
+	  var generatedIds = 0
+    var IDAttrPrefix = 'ui-stamp-editor-'
 	
     //if (stampConfig.someproperty) { // Useful for passing non-init related settings to Stamp from Angular
     //  stamp.someproperty = stampConfig.someproperty
@@ -17,30 +17,30 @@
       require: ['ngModel'],
       link: function(scope, element, attrs, ctrls) {
         if (!$window.Stamp) {
-		  console && console.log('Stamp not available on window object')
+		      console && console.log('Stamp not available on window object')
           return
         }
 
         var ngModel = ctrls[0]
-		var options = {}
+		    var options = {}
         var expression = {}
-		var stampInstance
+		    var stampInstance
 		
         function updateView(editor) {
-			var content = editor.getContent()
+			    var content = editor.getContent()
 			
-			ngModel.$setViewValue(content)
-			if (!$rootScope.$$phase) {
-				scope.$digest()
-			}
-		}
+			    ngModel.$setViewValue(content)
+			    if (!$rootScope.$$phase) {
+				    scope.$digest()
+			    }
+		    }
 
         // generate an ID
-        attrs.$set('id', ID_ATTR + '-' + generatedIds++)
+        attrs.$set('id', IDAttrPrefix + '-' + generatedIds++)
 
-        angular.extend(expression, scope.$eval(attrs.spOptions))
+        angular.extend(expression, scope.$eval(attrs.stampOptions))
 
-        var setupOptions = {
+        /*var setupOptions = {
           // Update model when calling setContent
           // (such as from the source editor popup)
           setup: function(ed) {
@@ -90,14 +90,15 @@
           },
           format: expression.format || 'html',
           selector: '#' + attrs.id
-        }
+        }*/
+
         // extend options with initial stampConfig and
         // options from directive attribute value
         angular.extend(options, stampConfig, expression, setupOptions)
         
         stampInstance = new $window.Stamp(options)
 
-        ngModel.$formatters.unshift(function(modelValue) {
+        /*ngModel.$formatters.unshift(function(modelValue) {
           return modelValue ? $sce.trustAsHtml(modelValue) : ''
         })
 
@@ -121,10 +122,11 @@
             // becoming out of sync for change callbacks
             tinyInstance.fire('change')
           }
-        }
+        }*/
 
-        attrs.$observe('disabled', toggleDisable)
+        // attrs.$observe('disabled', toggleDisable)
 
+        /*
         // This block is because of TinyMCE not playing well with removal and
         // recreation of instances, requiring instances to have different
         // selectors in order to render new instances properly
@@ -154,7 +156,7 @@
           if (!tinyInstance) {
             tinyInstance = tinymce.get(attrs.id)
           }
-        }
+        }*/
       }
     }
   }])
