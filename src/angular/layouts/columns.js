@@ -1,4 +1,10 @@
-import Layout from '../core/layout'
+//import Layout from '../core/layout'
+
+class Layout {
+	constructor() {
+
+	}
+}
 
 class OneColumn extends Layout {
 	constructor() {
@@ -21,5 +27,3 @@ class FourColumn extends Layout {
 		super('Four Columns')
 	}
 }
-
-export { OneColumn, TwoColumn, ThreeColumn, FourColumn }

@@ -1,0 +1,7 @@
+<div class="stamp-stack-container">
+  <div class="stack-row row-{{$index}}" ng-repeat="row in rows">
+    <stamp-row data="row"></stamp-row>
+  </div>
+  <div class="no-config" ng-id="rows.length == 0">No Rows</div>
+  <div ng-if="!locked && !readOnly"><input class="btn btn-default" type="button" ng-click="addRow()" value="+ Row"></input></div>
+</div>

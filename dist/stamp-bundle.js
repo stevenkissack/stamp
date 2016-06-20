@@ -5,32 +5,71 @@ Object.defineProperty(exports, "__esModule", {
 	value: true
 });
 
-var _component = require('../core/component');
-
-var _component2 = _interopRequireDefault(_component);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var TextComponent = function (_Component) {
-	_inherits(TextComponent, _Component);
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	function TextComponent() {
-		_classCallCheck(this, TextComponent);
+//import Layout from '../core/layout'
 
-		return _possibleConstructorReturn(this, Object.getPrototypeOf(TextComponent).call(this));
+var Layout = function Layout() {
+	_classCallCheck(this, Layout);
+};
+
+var OneColumn = function (_Layout) {
+	_inherits(OneColumn, _Layout);
+
+	function OneColumn() {
+		_classCallCheck(this, OneColumn);
+
+		return _possibleConstructorReturn(this, Object.getPrototypeOf(OneColumn).call(this, 'One Column'));
 	}
 
-	return TextComponent;
-}(_component2.default);
+	return OneColumn;
+}(Layout);
 
-exports.default = TextComponent;
-},{"../core/component":2}],2:[function(require,module,exports){
+var TwoColumn = function (_Layout2) {
+	_inherits(TwoColumn, _Layout2);
+
+	function TwoColumn() {
+		_classCallCheck(this, TwoColumn);
+
+		return _possibleConstructorReturn(this, Object.getPrototypeOf(TwoColumn).call(this, 'Two Columns'));
+	}
+
+	return TwoColumn;
+}(Layout);
+
+var ThreeColumn = function (_Layout3) {
+	_inherits(ThreeColumn, _Layout3);
+
+	function ThreeColumn() {
+		_classCallCheck(this, ThreeColumn);
+
+		return _possibleConstructorReturn(this, Object.getPrototypeOf(ThreeColumn).call(this, 'Three Columns'));
+	}
+
+	return ThreeColumn;
+}(Layout);
+
+var FourColumn = function (_Layout4) {
+	_inherits(FourColumn, _Layout4);
+
+	function FourColumn() {
+		_classCallCheck(this, FourColumn);
+
+		return _possibleConstructorReturn(this, Object.getPrototypeOf(FourColumn).call(this, 'Four Columns'));
+	}
+
+	return FourColumn;
+}(Layout);
+
+exports.OneColumn = OneColumn;
+exports.TwoColumn = TwoColumn;
+exports.ThreeColumn = ThreeColumn;
+exports.FourColumn = FourColumn;
+},{}],2:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -41,7 +80,7 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-// Base for all components to inherit from
+// Base for all components
 
 var Component = function () {
 	function Component(name, group) {
@@ -169,7 +208,7 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-// Base for all layouts to inherit from
+// Base for all layouts
 
 var Layout = function () {
 	function Layout(name) {
@@ -252,6 +291,7 @@ var StackItem = function () {
 	function StackItem(component, attrs) {
 		_classCallCheck(this, StackItem);
 
+		this.components = [];
 		this.attrs = Object.assign({
 			layout: 'oneColumn' // Default layout
 		}, attrs);
@@ -259,13 +299,14 @@ var StackItem = function () {
 
 	_createClass(StackItem, [{
 		key: 'add',
-		value: function add() {
-			throw new Error('NotImplementedException');
+		value: function add(component) {
+			this.components.push(component);
 		}
 	}, {
 		key: 'remove',
-		value: function remove() {
-			throw new Error('NotImplementedException');
+		value: function remove(componentIndex) {
+			var removedItems = this.components.splice(componentIndex, 1);
+			removedItems = null; // Not sure if we need to do anything with them
 		}
 	}]);
 
@@ -367,6 +408,7 @@ var Stamp = function () {
 	}, {
 		key: 'moveRow',
 		value: function moveRow(index, newIndex) {
+			if (index === undefined || newIndex === undefined) return;
 			this.stack.move(index, newIndex);
 		}
 	}, {
@@ -398,6 +440,9 @@ var Stamp = function () {
 
 Stamp.components = {};
 Stamp.layouts = {};
+
+// Should it be an object mapping types of files/content?
+// e.g {'image': [handler, handler, ...]}
 Stamp.dropHandlers = [];
 
 Stamp.register = {
@@ -427,78 +472,6 @@ exports.default = Stamp;
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.FourColumn = exports.ThreeColumn = exports.TwoColumn = exports.OneColumn = undefined;
-
-var _layout = require('../core/layout');
-
-var _layout2 = _interopRequireDefault(_layout);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var OneColumn = function (_Layout) {
-	_inherits(OneColumn, _Layout);
-
-	function OneColumn() {
-		_classCallCheck(this, OneColumn);
-
-		return _possibleConstructorReturn(this, Object.getPrototypeOf(OneColumn).call(this, 'One Column'));
-	}
-
-	return OneColumn;
-}(_layout2.default);
-
-var TwoColumn = function (_Layout2) {
-	_inherits(TwoColumn, _Layout2);
-
-	function TwoColumn() {
-		_classCallCheck(this, TwoColumn);
-
-		return _possibleConstructorReturn(this, Object.getPrototypeOf(TwoColumn).call(this, 'Two Columns'));
-	}
-
-	return TwoColumn;
-}(_layout2.default);
-
-var ThreeColumn = function (_Layout3) {
-	_inherits(ThreeColumn, _Layout3);
-
-	function ThreeColumn() {
-		_classCallCheck(this, ThreeColumn);
-
-		return _possibleConstructorReturn(this, Object.getPrototypeOf(ThreeColumn).call(this, 'Three Columns'));
-	}
-
-	return ThreeColumn;
-}(_layout2.default);
-
-var FourColumn = function (_Layout4) {
-	_inherits(FourColumn, _Layout4);
-
-	function FourColumn() {
-		_classCallCheck(this, FourColumn);
-
-		return _possibleConstructorReturn(this, Object.getPrototypeOf(FourColumn).call(this, 'Four Columns'));
-	}
-
-	return FourColumn;
-}(_layout2.default);
-
-exports.OneColumn = OneColumn;
-exports.TwoColumn = TwoColumn;
-exports.ThreeColumn = ThreeColumn;
-exports.FourColumn = FourColumn;
-},{"../core/layout":5}],9:[function(require,module,exports){
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
@@ -514,14 +487,11 @@ var _layout = require('./core/layout');
 
 var _layout2 = _interopRequireDefault(_layout);
 
-var _columns = require('./layouts/columns');
-
-var _text = require('./components/text');
-
-var _text2 = _interopRequireDefault(_text);
+var _columns = require('./angular/layouts/columns');
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+//import Text from './components/text'
 //import Quote from './components/quote'
 //import Header from './components/header'
 
@@ -539,25 +509,30 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
   'default': DefaultTemplate
 })*/
 
-// Load all components we want in the build
+// Load Core
 _stamp2.default.register.layout({
   'oneColumn': _columns.OneColumn,
   'twoColumn': _columns.TwoColumn,
   'threeColumn': _columns.ThreeColumn,
   'fourColumn': _columns.FourColumn
-}); // Load Core
+});
+
+// Load all components we want in the build
 
 
 _stamp2.default.register.component({
-  'basic/text': _text2.default /*,
-                               'basic/header': Header,
-                               'basic/table': Table,
-                               'basic/quote': Quote,
-                               'basic/list': List,
-                               'media/image': Image,
-                               'media/video': Video,
-                               'media/audio': Audio*/
+  /*'basic/text': Text,
+  'basic/header': Header,
+  'basic/table': Table,
+  'basic/quote': Quote,
+  'basic/list': List,
+  'media/image': Image,
+  'media/video': Video,
+  'media/audio': Audio*/
 });
 
+// Expose on window level
+window.Stamp = _stamp2.default;
+
 exports.default = _stamp2.default;
-},{"./components/text":1,"./core/component":2,"./core/layout":5,"./core/stamp":7,"./layouts/columns":8}]},{},[9]);
+},{"./angular/layouts/columns":1,"./core/component":2,"./core/layout":5,"./core/stamp":7}]},{},[8]);
