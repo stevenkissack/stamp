@@ -17,3 +17,18 @@ Features:
  - [ ] Read-only structures
  - [ ] Documentation
  - [ ] NPM published
+
+## Visual Stack Of Elements / Classes
+
+```
+Stamp
+│   @locked
+│   @readOnly    
+│
+└───Stack
+    │   
+    └───Stack Item - "Row"
+        │   @layout (Layout Class)
+        │   
+        └───Component
+```
