@@ -27,7 +27,7 @@ Stamp
 │
 └───Stack
     │   
-    └───Stack Item - "Row"
+    └───Block
         │   @layout (Layout Class)
         │   
         └───Component

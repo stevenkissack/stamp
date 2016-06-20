@@ -15,11 +15,11 @@
 
     function parseStack(instance) {
       // Build JSON object
-      // Call Row parser
+      // Call Block parser
       // Return
     }
 
-    function parseRow(instance) {
+    function parseBlock(instance) {
       // & Layout
 
       // Build JSON object

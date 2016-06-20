@@ -17,7 +17,7 @@
     */
   }
 
-  // Base for all layouts
+  // Base for all layouts of blocks
   class Layout {
     constructor (name) {
       this.name = name
@@ -33,13 +33,13 @@
     */
   }
 
-  // Holds multiple "Rows" (StackItems)
+  // Holds multiple blocks
   class Stack {
     constructor(StampInstance) {
-      this.rows = []
+      this.blocks = []
     }
     get length() {
-      return this.rows.length
+      return this.blocks.length
     }
     get() {
       throw new Error('NotImplementedException')
@@ -55,13 +55,13 @@
     }
   }
 
-  // This is a "Row"
-  class StackItem {
+  class Block {
     constructor(component, attrs) {
       this.components = []
-      this.attrs = Object.assign({
-        layout: 'oneColumn' // Default layout
-      }, attrs)
+      this.attrs = attrs
+      //this.attrs = Object.assign({ Think we want layout undefined
+       // layout: 'oneColumn' // Default layout
+      //}, attrs)
     }
     add(component) {
       this.components.push(component)
@@ -74,8 +74,8 @@
 
   /**
    * Note: 
-   * 		- Stacks are built up of rows which contain components
-   * 		- Moving components between rows is not supported yet
+   * 		- Stacks are built up of blocks which contain components
+   * 		- Moving components between blocks is not supported yet
    */
 
   class Stamp {
@@ -100,7 +100,7 @@
     }
     
     /*get editable() {
-      // TODO: Should implement Row.editable & Component.editable
+      // TODO: Should implement Block.editable & Component.editable
       return this.attributes.locked === false
     }
     
@@ -109,37 +109,37 @@
       this.attributes.locked = !!val
     }*/
     
-    addRow(index=this.stack.length, attrs) {
+    addBlock(index=this.stack.length, attrs) {
       // If no specified position, defaults to end
       this.stack.add(index, new StackItem(attrs))
     }
     
-    removeRow(index) {
+    removeBlock(index) {
       if(index === undefined) return
       this.stack.remove(index)
     }
     
-    moveRow(index, newIndex) {
+    moveBlock(index, newIndex) {
       if(index === undefined || newIndex === undefined) return
       this.stack.move(index, newIndex)
     }
     
-    addComponent(rowIndex, component) {
+    addComponent(blockIndex, component) {
       if(!Component.validate(component)) return 'Not A Valid Stamp Component'
       
-      let stackItem = this.stack.get(rowIndex)
+      let stackItem = this.stack.get(blockIndex)
       if(!stackItem) return 'Not A Valid Stack Index'
       
       stackItem.add(component)
     }
     
-    removeComponent(rowIndex, componentIndex) {
-      let stackItem = this.stack.get(rowIndex)
+    removeComponent(blockIndex, componentIndex) {
+      let stackItem = this.stack.get(blockIndex)
       if(!stackItem) return 'Not A Valid Stack Index'
       stackItem.remove(componentIndex)
     }
     
-    /*moveComponent(rowIndex, index, newRowIndex, newIndex) {
+    /*moveComponent(blockIndex, index, newBlockIndex, newIndex) {
       
     }*/
   }
@@ -148,6 +148,6 @@
   stampModels.value('Component', Component)
   stampModels.value('Layout', Layout)
   stampModels.value('Stack', Stack)
-  stampModels.value('StackItem', StackItem)
+  stampModels.value('Block', Block)
 
 }())

@@ -51,9 +51,9 @@ angular.module('stampSetup', [])
 	
   // Register standard columns
   /*angular.forEach(['OneColumn','TwoColumn','ThreeColumn','FourColumn'], function(item, index) {
-    stampRegisterLayout(item, function(row) {
+    stampRegisterLayout(item, function(block) {
       console.log('TODO: init action')
-      // row.layout = 
+      // block.layout = 
     })
   })*/
 
@@ -61,7 +61,7 @@ angular.module('stampSetup', [])
     icon: '',
     label: 'One Column',// TODO: stmpTranslations.layouts.OneColumn,
     action: function() {
-    // row.layout = 
+    // block.layout = 
     // What should we bind context to?
     }
   })

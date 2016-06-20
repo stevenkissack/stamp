@@ -13,8 +13,6 @@
     //  stamp.someproperty = stampConfig.someproperty
     //}
 
-    console.log('Initialising Stamp directive')
-
     return {
       require: ['ngModel'],
       templateUrl: '../src/angular/templates/editor.html',
@@ -26,27 +24,26 @@
         let elements
         
         // In case they don't pass any data
-        scope.data = scope.data = {}
+        scope.data = scope.data || {}
 
         // generate an ID
         attrs.$set('id', IDAttrPrefix + generatedIds++)
         console.log('Stamp directive given ID: ' + IDAttrPrefix + generatedIds)
         
+        // Note: Don't use this yet
         // Merge all our settings from global and instance level
         angular.extend(expression, scope.$eval(attrs.stampOptions))
+
         // extend options with initial stampConfig and options from directive attribute value
         angular.extend(options, stampConfig, expression)
 
         // Set all the settings
         scope.attributes = Object.assign({
-          layout: 'oneColumn', // Defaults
           locked: false, // Stop stack changes
           readOnly: false // Stop content edits
         }, scope.data.attributes || {})
         // Instance variables
-        scope.stack = []
-        
-
+        scope.stack = new Stack(scope.data.stack)
 
         /*function updateView(editor) {
 			    var content = editor.getContent()
@@ -110,74 +107,66 @@
         }*/
       },
       controller: ['$scope', function ($scope) {
-        this.addRow = function (index, component) {
-          console.log('Called addRow on editor. TODO')
+        this.addBlock = function (index, component) {
+          console.log('Called addBlock on editor. TODO')
           // Optional passed index, delete nothing, add component
           scope.stack.splice(index || 0, 0, component)
         }
-        this.removeRow = function (index) {
-          console.log('Called removeRow on editor. TODO')
+        this.removeBlock = function (index) {
+          console.log('Called removeBlock on editor. TODO')
           if(index === undefined) return
           let removedComponent = $scope.components.splice(index, 1)
           removedComponent = null // What to do with the removed item?
         }
-        this.moveRow = function (index, newIndex) {
-          console.log('Called moveRow on editor. TODO')
+        this.moveBlock = function (index, newIndex) {
+          console.log('Called moveBlock on editor. TODO')
           // TODO: guard more against out of bounds
           if(   index === undefined 
              || newIndex === undefined 
              || newIndex > scope.stack.length) {
-              console.log('Invalid row move operation')
+              console.log('Invalid block move operation')
               return
             }
           // Delete nothing, add the item cut out using the 3rd param of splice
           scope.stack.splice(newIndex, 0, scope.stack.splice(index, 1)[0])
         }
         // Maybe:
-        this.toJSON = function() {
+        /*this.toJSON = function() {
           //TODO: call stamp.mappers.json.to
-        }
+        }*/
       }]
     }
   }])
 
-  stamp.directive('stampRow', ['$compile', function ($compile) {
+  stamp.directive('stampBlock', ['$compile', function ($compile) {
     return {
       restrict: 'E',
       require: '^stampEditor',
-      templateUrl: 'src/angular/templates/row.html',
+      templateUrl: 'src/angular/templates/block.html',
       scope: {
         data: '='
       },
       link: function (scope, element, attrs, parentCtrl) {
 
         scope.components = []
-        scope.attributes = Object.assign({
-          locked: false, // Stop row changes
-          readOnly: false // Stop content edits
-        }, scope.data.attributes || {})
-
-        scope.elements = {
-          addComponent: angular.element('<div ng-if="!locked"><input class="btn btn-default" type="button" ng-click="addComponent()">+ Add Component</input></div>')
-        }
-        element.append(scope.elements.addComponent)
-        console.log('Added addComponent template to row')
+        // Note: Not sure what defaults to add at a block level
+        scope.attributes = Object.assign({}, scope.data.attributes || {})
 
         // TODO: Loop data.components and add them to DOM
       },
       controller: ['$scope', function ($scope) {
         this.setLayout = function (name) {
-          console.log('Called setLayout on row. TODO')
+          console.log('Called setLayout on block. TODO')
         }
         this.addComponent = function (index, name) {
           // Optional name otherwise show default picker
-          console.log('Called addComponent on row. TODO')
+          console.log('Called addComponent on block. TODO')
         }
         this.removeComponent = function (index) {
-          console.log('Called removeComponent on row. TODO')
+          console.log('Called removeComponent on block. TODO')
         }
         this.moveComponent = function (index, newIndex) {
-          console.log('Called removeComponent on row. TODO')
+          console.log('Called removeComponent on block. TODO')
         }
       }]
     }

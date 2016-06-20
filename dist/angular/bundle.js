@@ -29,11 +29,11 @@ catch(err) { module = angular.module("stamp", []); }
 module.run(["$templateCache", function($templateCache) {
   $templateCache.put("src/angular/templates/editor.html",
     "<div class=\"stamp-stack-container\">\n" +
-    "  <div class=\"stack-row row-{{$index}}\" data-ng-repeat=\"row in rows\">\n" +
-    "    <stamp-row data=\"row\"></stamp-row>\n" +
+    "  <div class=\"stack-block block-{{$index}}\" data-ng-repeat=\"block in blocks\">\n" +
+    "    <stamp-block data=\"block\"></stamp-block>\n" +
     "  </div>\n" +
-    "  <div class=\"no-config\" data-ng-id=\"rows.length == 0\">No Rows</div>\n" +
-    "  <div data-ng-if=\"!locked && !readOnly\"><input class=\"btn btn-default\" type=\"button\" value=\"+ Row\" data-ng-click=\"addRow()\"></div>\n" +
+    "  <div class=\"no-config\" data-ng-id=\"blocks.length == 0\">No Blocks</div>\n" +
+    "  <div data-ng-if=\"!locked && !readOnly\"><input class=\"btn btn-default\" type=\"button\" value=\"+ Block\" data-ng-click=\"addBlock()\"></div>\n" +
     "</div>");
 }]);
 })();
@@ -55,11 +55,11 @@ module.run(["$templateCache", function($templateCache) {
 
     function parseStack(instance) {
       // Build JSON object
-      // Call Row parser
+      // Call Block parser
       // Return
     }
 
-    function parseRow(instance) {
+    function parseBlock(instance) {
       // & Layout
 
       // Build JSON object
@@ -91,6 +91,15 @@ module.run(["$templateCache", function($templateCache) {
     };
   });
 })();
+;(function(module) {
+try { module = angular.module("stamp"); }
+catch(err) { module = angular.module("stamp", []); }
+module.run(["$templateCache", function($templateCache) {
+  $templateCache.put("src/angular/templates/row.html",
+    "<div data-ng-if=\"!locked\"><input class=\"btn btn-default\" type=\"button\" data-ng-click=\"addComponent()\">+ Add Component</div>");
+}]);
+})();
+
 ;'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -125,7 +134,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
     return Component;
   }();
 
-  // Base for all layouts
+  // Base for all layouts of blocks
 
 
   var Layout = function () {
@@ -151,14 +160,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
     return Layout;
   }();
 
-  // Holds multiple "Rows" (StackItems)
+  // Holds multiple blocks
 
 
   var Stack = function () {
     function Stack(StampInstance) {
       _classCallCheck(this, Stack);
 
-      this.rows = [];
+      this.blocks = [];
     }
 
     _createClass(Stack, [{
@@ -184,27 +193,25 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
     }, {
       key: 'length',
       get: function get() {
-        return this.rows.length;
+        return this.blocks.length;
       }
     }]);
 
     return Stack;
   }();
 
-  // This is a "Row"
-
-
-  var StackItem = function () {
-    function StackItem(component, attrs) {
-      _classCallCheck(this, StackItem);
+  var Block = function () {
+    function Block(component, attrs) {
+      _classCallCheck(this, Block);
 
       this.components = [];
-      this.attrs = Object.assign({
-        layout: 'oneColumn' // Default layout
-      }, attrs);
+      this.attrs = attrs;
+      //this.attrs = Object.assign({ Think we want layout undefined
+      // layout: 'oneColumn' // Default layout
+      //}, attrs)
     }
 
-    _createClass(StackItem, [{
+    _createClass(Block, [{
       key: 'add',
       value: function add(component) {
         this.components.push(component);
@@ -217,13 +224,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
       }
     }]);
 
-    return StackItem;
+    return Block;
   }();
 
   /**
    * Note: 
-   * 		- Stacks are built up of rows which contain components
-   * 		- Moving components between rows is not supported yet
+   * 		- Stacks are built up of blocks which contain components
+   * 		- Moving components between blocks is not supported yet
    */
 
   var Stamp = function () {
@@ -253,7 +260,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
       }
 
       /*get editable() {
-        // TODO: Should implement Row.editable & Component.editable
+        // TODO: Should implement Block.editable & Component.editable
         return this.attributes.locked === false
       }
       
@@ -263,8 +270,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
       }*/
 
     }, {
-      key: 'addRow',
-      value: function addRow() {
+      key: 'addBlock',
+      value: function addBlock() {
         var index = arguments.length <= 0 || arguments[0] === undefined ? this.stack.length : arguments[0];
         var attrs = arguments[1];
 
@@ -272,36 +279,36 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
         this.stack.add(index, new StackItem(attrs));
       }
     }, {
-      key: 'removeRow',
-      value: function removeRow(index) {
+      key: 'removeBlock',
+      value: function removeBlock(index) {
         if (index === undefined) return;
         this.stack.remove(index);
       }
     }, {
-      key: 'moveRow',
-      value: function moveRow(index, newIndex) {
+      key: 'moveBlock',
+      value: function moveBlock(index, newIndex) {
         if (index === undefined || newIndex === undefined) return;
         this.stack.move(index, newIndex);
       }
     }, {
       key: 'addComponent',
-      value: function addComponent(rowIndex, component) {
+      value: function addComponent(blockIndex, component) {
         if (!Component.validate(component)) return 'Not A Valid Stamp Component';
 
-        var stackItem = this.stack.get(rowIndex);
+        var stackItem = this.stack.get(blockIndex);
         if (!stackItem) return 'Not A Valid Stack Index';
 
         stackItem.add(component);
       }
     }, {
       key: 'removeComponent',
-      value: function removeComponent(rowIndex, componentIndex) {
-        var stackItem = this.stack.get(rowIndex);
+      value: function removeComponent(blockIndex, componentIndex) {
+        var stackItem = this.stack.get(blockIndex);
         if (!stackItem) return 'Not A Valid Stack Index';
         stackItem.remove(componentIndex);
       }
 
-      /*moveComponent(rowIndex, index, newRowIndex, newIndex) {
+      /*moveComponent(blockIndex, index, newBlockIndex, newIndex) {
         
       }*/
 
@@ -314,7 +321,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
   stampModels.value('Component', Component);
   stampModels.value('Layout', Layout);
   stampModels.value('Stack', Stack);
-  stampModels.value('StackItem', StackItem);
+  stampModels.value('Block', Block);
 })();
 ;'use strict';
 
@@ -333,8 +340,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
     //  stamp.someproperty = stampConfig.someproperty
     //}
 
-    console.log('Initialising Stamp directive');
-
     return {
       require: ['ngModel'],
       templateUrl: '../src/angular/templates/editor.html',
@@ -346,25 +351,26 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
         var elements = void 0;
 
         // In case they don't pass any data
-        scope.data = scope.data = {};
+        scope.data = scope.data || {};
 
         // generate an ID
         attrs.$set('id', IDAttrPrefix + generatedIds++);
         console.log('Stamp directive given ID: ' + IDAttrPrefix + generatedIds);
 
+        // Note: Don't use this yet
         // Merge all our settings from global and instance level
         angular.extend(expression, scope.$eval(attrs.stampOptions));
+
         // extend options with initial stampConfig and options from directive attribute value
         angular.extend(options, stampConfig, expression);
 
         // Set all the settings
         scope.attributes = Object.assign({
-          layout: 'oneColumn', // Defaults
           locked: false, // Stop stack changes
           readOnly: false // Stop content edits
         }, scope.data.attributes || {});
         // Instance variables
-        scope.stack = [];
+        scope.stack = new Stack(scope.data.stack);
 
         /*function updateView(editor) {
         var content = editor.getContent()
@@ -422,72 +428,64 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
         }*/
       },
       controller: ['$scope', function ($scope) {
-        this.addRow = function (index, component) {
-          console.log('Called addRow on editor. TODO');
+        this.addBlock = function (index, component) {
+          console.log('Called addBlock on editor. TODO');
           // Optional passed index, delete nothing, add component
           scope.stack.splice(index || 0, 0, component);
         };
-        this.removeRow = function (index) {
-          console.log('Called removeRow on editor. TODO');
+        this.removeBlock = function (index) {
+          console.log('Called removeBlock on editor. TODO');
           if (index === undefined) return;
           var removedComponent = $scope.components.splice(index, 1);
           removedComponent = null; // What to do with the removed item?
         };
-        this.moveRow = function (index, newIndex) {
-          console.log('Called moveRow on editor. TODO');
+        this.moveBlock = function (index, newIndex) {
+          console.log('Called moveBlock on editor. TODO');
           // TODO: guard more against out of bounds
           if (index === undefined || newIndex === undefined || newIndex > scope.stack.length) {
-            console.log('Invalid row move operation');
+            console.log('Invalid block move operation');
             return;
           }
           // Delete nothing, add the item cut out using the 3rd param of splice
           scope.stack.splice(newIndex, 0, scope.stack.splice(index, 1)[0]);
         };
         // Maybe:
-        this.toJSON = function () {
+        /*this.toJSON = function() {
           //TODO: call stamp.mappers.json.to
-        };
+        }*/
       }]
     };
   }]);
 
-  stamp.directive('stampRow', ['$compile', function ($compile) {
+  stamp.directive('stampBlock', ['$compile', function ($compile) {
     return {
       restrict: 'E',
       require: '^stampEditor',
-      templateUrl: 'src/angular/templates/row.html',
+      templateUrl: 'src/angular/templates/block.html',
       scope: {
         data: '='
       },
       link: function link(scope, element, attrs, parentCtrl) {
 
         scope.components = [];
-        scope.attributes = Object.assign({
-          locked: false, // Stop row changes
-          readOnly: false // Stop content edits
-        }, scope.data.attributes || {});
-
-        scope.elements = {
-          addComponent: angular.element('<div ng-if="!locked"><input class="btn btn-default" type="button" ng-click="addComponent()">+ Add Component</input></div>')
-        };
-        element.append(scope.elements.addComponent);
-        console.log('Added addComponent template to row');
+        // Note: Not sure what defaults to add at a block level
+        scope.attributes = Object.assign({}, scope.data.attributes || {});
 
         // TODO: Loop data.components and add them to DOM
       },
       controller: ['$scope', function ($scope) {
         this.setLayout = function (name) {
-          console.log('Called setLayout on row. TODO');
+          console.log('Called setLayout on block. TODO');
         };
         this.addComponent = function (index, name) {
           // Optional name otherwise show default picker
-          console.log('Called addComponent on row. TODO');
+          console.log('Called addComponent on block. TODO');
         };
         this.removeComponent = function (index) {
-          console.log('Called removeComponent on row. TODO');
+          console.log('Called removeComponent on block. TODO');
         };
         this.moveComponent = function (index, newIndex) {
-          console.log('Called removeComponent on row. TODO');
+          console.log('Called removeComponent on block. TODO');
         };
       }]
     };

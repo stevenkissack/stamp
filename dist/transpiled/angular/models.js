@@ -32,7 +32,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
     return Component;
   }();
 
-  // Base for all layouts
+  // Base for all layouts of blocks
 
 
   var Layout = function () {
@@ -58,14 +58,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
     return Layout;
   }();
 
-  // Holds multiple "Rows" (StackItems)
+  // Holds multiple blocks
 
 
   var Stack = function () {
     function Stack(StampInstance) {
       _classCallCheck(this, Stack);
 
-      this.rows = [];
+      this.blocks = [];
     }
 
     _createClass(Stack, [{
@@ -91,27 +91,25 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
     }, {
       key: 'length',
       get: function get() {
-        return this.rows.length;
+        return this.blocks.length;
       }
     }]);
 
     return Stack;
   }();
 
-  // This is a "Row"
-
-
-  var StackItem = function () {
-    function StackItem(component, attrs) {
-      _classCallCheck(this, StackItem);
+  var Block = function () {
+    function Block(component, attrs) {
+      _classCallCheck(this, Block);
 
       this.components = [];
-      this.attrs = Object.assign({
-        layout: 'oneColumn' // Default layout
-      }, attrs);
+      this.attrs = attrs;
+      //this.attrs = Object.assign({ Think we want layout undefined
+      // layout: 'oneColumn' // Default layout
+      //}, attrs)
     }
 
-    _createClass(StackItem, [{
+    _createClass(Block, [{
       key: 'add',
       value: function add(component) {
         this.components.push(component);
@@ -124,13 +122,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
       }
     }]);
 
-    return StackItem;
+    return Block;
   }();
 
   /**
    * Note: 
-   * 		- Stacks are built up of rows which contain components
-   * 		- Moving components between rows is not supported yet
+   * 		- Stacks are built up of blocks which contain components
+   * 		- Moving components between blocks is not supported yet
    */
 
   var Stamp = function () {
@@ -160,7 +158,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
       }
 
       /*get editable() {
-        // TODO: Should implement Row.editable & Component.editable
+        // TODO: Should implement Block.editable & Component.editable
         return this.attributes.locked === false
       }
       
@@ -170,8 +168,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
       }*/
 
     }, {
-      key: 'addRow',
-      value: function addRow() {
+      key: 'addBlock',
+      value: function addBlock() {
         var index = arguments.length <= 0 || arguments[0] === undefined ? this.stack.length : arguments[0];
         var attrs = arguments[1];
 
@@ -179,36 +177,36 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
         this.stack.add(index, new StackItem(attrs));
       }
     }, {
-      key: 'removeRow',
-      value: function removeRow(index) {
+      key: 'removeBlock',
+      value: function removeBlock(index) {
         if (index === undefined) return;
         this.stack.remove(index);
       }
     }, {
-      key: 'moveRow',
-      value: function moveRow(index, newIndex) {
+      key: 'moveBlock',
+      value: function moveBlock(index, newIndex) {
         if (index === undefined || newIndex === undefined) return;
         this.stack.move(index, newIndex);
       }
     }, {
       key: 'addComponent',
-      value: function addComponent(rowIndex, component) {
+      value: function addComponent(blockIndex, component) {
         if (!Component.validate(component)) return 'Not A Valid Stamp Component';
 
-        var stackItem = this.stack.get(rowIndex);
+        var stackItem = this.stack.get(blockIndex);
         if (!stackItem) return 'Not A Valid Stack Index';
 
         stackItem.add(component);
       }
     }, {
       key: 'removeComponent',
-      value: function removeComponent(rowIndex, componentIndex) {
-        var stackItem = this.stack.get(rowIndex);
+      value: function removeComponent(blockIndex, componentIndex) {
+        var stackItem = this.stack.get(blockIndex);
         if (!stackItem) return 'Not A Valid Stack Index';
         stackItem.remove(componentIndex);
       }
 
-      /*moveComponent(rowIndex, index, newRowIndex, newIndex) {
+      /*moveComponent(blockIndex, index, newBlockIndex, newIndex) {
         
       }*/
 
@@ -221,5 +219,5 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
   stampModels.value('Component', Component);
   stampModels.value('Layout', Layout);
   stampModels.value('Stack', Stack);
-  stampModels.value('StackItem', StackItem);
+  stampModels.value('Block', Block);
 })();
