@@ -12,13 +12,14 @@
   <!-- Stamp -->
   <script type="text/javascript" src="../dist/stamp-bundle.js"></script>
   
-  <!-- Provide Ng Stamp Configuration -->
-  <script type="text/javascript" src="stampSetup.js"></script>
 
   <!-- Angular Stamp module -->
   <script type="text/javascript" src="../dist/angular/bundle.js"></script>
   <!--<script type="text/javascript" src="../dist/transpiled/angular/mappers.js"></script>
   <script type="text/javascript" src="../dist/transpiled/angular/stamp.js"></script>-->
+  
+  <!-- Provide Ng Stamp Configuration -->
+  <script type="text/javascript" src="stampSetup.js"></script>
   
   <!-- Angular App -->
   <script type="text/javascript" src="app.js"></script>
@@ -29,5 +30,6 @@
   
   <h3>Data:</h3>
   <pre>{{stampMarkup | json}}</pre>
+  <input type="button" class="btn btn-default" ng-click="changeModel()" value="Change Model"/>
 </body>
 </html>

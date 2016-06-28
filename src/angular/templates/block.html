@@ -1,0 +1,6 @@
+<div ng-class="getColumnClasses($index)" ng-repeat="column in data.columns track by $index">
+  <div class="stack-component component-{{$index}}" ng-repeat="component in column.components track by $index">
+     <stamp-component data="component" col-index="$parent.$index" com-index="$index"></stamp-component>
+  </div>
+  <div ng-if="!parent.locked && !parent.readOnly"><input class="btn btn-default" type="button" ng-click="addComponent($parent.$index)" value="+ Component"></input></div>
+</div>

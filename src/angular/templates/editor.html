@@ -1,7 +1,8 @@
 <div class="stamp-stack-container">
-  <div class="stack-block block-{{$index}}" ng-repeat="block in blocks">
-    <stamp-block data="block"></stamp-block>
+  {{json | json}}
+  <div class="stack-block block-{{$index}}" ng-repeat="block in json.blocks">
+    <stamp-block data="block" index="$index"></stamp-block>
   </div>
-  <div class="no-config" ng-id="blocks.length == 0">No Blocks</div>
+  <div class="no-config" ng-if="!json.blocks || json.blocks.length == 0">No Blocks</div>
   <div ng-if="!locked && !readOnly"><input class="btn btn-default" type="button" ng-click="addBlock()" value="+ Block"></input></div>
 </div>

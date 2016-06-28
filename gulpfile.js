@@ -72,7 +72,7 @@ gulp.task('watch', ['browserSync', 'compile'], () => {
 
   gulp.watch([jsGlob, htmlGlob], ['compile'])
 
-  // Reloads the browser whenever HTML or JS files change
+  // Reloads the browser whenever HTML or JS files change within the DEMO
   gulp.watch(demoGlob, browserSync.reload)
 
 })
