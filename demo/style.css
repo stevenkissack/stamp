@@ -1,0 +1,8 @@
+stamp-editor {
+  padding: 0 20%; /* pad in sides of editor */
+}
+
+stamp-editor .form-control,
+stamp-editor .btn {
+  border-radius: 0; /* remove rounding on inputs */
+}

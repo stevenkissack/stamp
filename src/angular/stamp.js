@@ -6,7 +6,7 @@
     return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()
   }
 
-	var stamp = angular.module('stamp', [/*'stamp.models', 'stamp.mappers', */'stampSetup'])
+	var stamp = angular.module('stamp', [/*'stamp.models', 'stamp.mappers', */'stampSetup', 'ui.bootstrap'])
 	stamp.value('stampConfig', {})
   stamp.directive('stampEditor', ['$rootScope', '$compile', '$timeout', '$window', 'stampConfig', function($rootScope, $compile, $timeout, $window, stampConfig) {
     stampConfig = stampConfig || {}
@@ -146,7 +146,9 @@
       require: '^stampEditor',
       templateUrl: '../src/angular/templates/block.html',
       scope: {
-        data: '='
+        data: '=',
+        blockIndex: '=', // Block Index
+        blockCount: '=', // Block Count
       },
       link: function (scope, element, attrs, parentCtrl) {
 
@@ -191,23 +193,25 @@
           let combinedClass = 'stack-column column-' + columnIndex + ' '
 
           if (scope.layout.columnStyles === undefined) {
-            combinedClass += 'no-col-styles'
+            combinedClass += 'col-md-12'
           } else if(angular.isObject(scope.layout.columnStyles)) {
             
             // Loop over each sizing and add as classes
-            for (var s = 0, sl = scope.layout.columnStyles.length; s < sl; s++) {
+            for (var size in scope.layout.columnStyles) {
+              if (scope.layout.columnStyles.hasOwnProperty(size)) {
+                let layoutSize = scope.layout.columnStyles[size]
               
-              let layoutSize = scope.layout.columnStyles[s]
-              
-              if (angular.isArray(layoutSize)) {
-                // Is Array
-                let calculatedIndex = (columnIndex > layoutSize.length - 1 ? layoutSize.length - 1 : columnIndex)  
-                combinedClass += 'col-' + scope.layout.columnStyles[calculatedIndex]
-              } else {
-                // Is String
-                combinedClass += 'col-' + scope.layout.columnStyles
+                if (angular.isArray(layoutSize)) {
+                  // Is Array
+                  let calculatedIndex = (columnIndex > layoutSize.length - 1 ? layoutSize.length - 1 : columnIndex)  
+                  combinedClass += 'col-' + size + '-' + layoutSize[calculatedIndex]
+                } else {
+                  // Is String
+                  combinedClass += 'col-' + size + '-' + layoutSize
+                }
+                // Pad between classes
+                combinedClass += ' '  
               }
-              
             }
 
           } else {
@@ -247,24 +251,34 @@
     }
   }])
 
-  stamp.directive('stampComponent', ['$compile', function ($compile) {
+  stamp.directive('stampComponent', ['$compile', 'stampComponents', function ($compile) {
     return {
       restrict: 'E',
       require: '^stampBlock',
       templateUrl: '../src/angular/templates/component.html',
       scope: {
         data: '=',
-        index: '='
+        index: '=',
+        colIndex: '=', // Column Index
+        comIndex: '=', // Component Index
+        comCount: '=', // Components Count
       },
       link: function (scope, element, attrs, parentCtrl) {
         if (!scope.data || !scope.data.type) {
-          scope.componentError = 'Missing vital component data'
+          scope.componentError = 'Missing required component data'
           return
         }
 
-        var componentName = camelToHyphen(scope.data.type)
-        var template = '<' + componentName + ' data="data"></' + componentName + '>'
-        var $template = $compile(template)(scope)
+        let directive = stampComponents[scope.data.type]
+
+        if(!directive) {
+          scope.componentError = 'No component registered for type: ' + scope.data.type
+          return
+        }
+
+        let directiveName = camelToHyphen(directive.directive)
+        let template = '<' + directiveName + ' data="data.data"></' + directiveName + '>'
+        let $template = $compile(template)(scope)
         
         // Append to last child within the component container
         element[0].getElementsByClassName('component-body')[0].appendChild($template[0])

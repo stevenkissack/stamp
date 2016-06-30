@@ -1,6 +1,7 @@
-<div ng-class="getColumnClasses($index)" ng-repeat="column in data.columns track by $index">
-  <div class="stack-component component-{{$index}}" ng-repeat="component in column.components track by $index">
-     <stamp-component data="component" col-index="$parent.$index" com-index="$index"></stamp-component>
+<div class="block-header clearfix"><p class="pull-right"><a href="#" ng-if="blockIndex !== 0">&#9650;</a><a href="#" ng-if="blockIndex !== blockCount - 1">&#9660;</a><a href="#">Layout</a> <a href="#">X</a></p></div>
+<div class="block-body" ng-class="getColumnClasses($index)" ng-repeat="column in data.columns track by $index">
+  <div class="stamp-component-wrapper component-{{$index}}" ng-repeat="component in column.components track by $index">
+     <stamp-component data="component" col-index="$parent.$index" com-index="$index" com-count="column.components.length"></stamp-component>
   </div>
-  <div ng-if="!parent.locked && !parent.readOnly"><input class="btn btn-default" type="button" ng-click="addComponent($parent.$index)" value="+ Component"></input></div>
+  <div ng-if="!parent.locked && !parent.readOnly"><input class="btn btn-default btn-lg center-block" type="button" ng-click="addComponent($parent.$index)" value="+ Component"></input></div>
 </div>

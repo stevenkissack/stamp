@@ -1,4 +1,19 @@
-'use strict';
+(function(module) {
+try { module = angular.module("stamp"); }
+catch(err) { module = angular.module("stamp", []); }
+module.run(["$templateCache", function($templateCache) {
+  $templateCache.put("src/angular/templates/block.html",
+    "<div class=\"block-header clearfix\"><p class=\"pull-right\"><a href=\"#\" data-ng-if=\"blockIndex !== 0\">&#9650;</a><a href=\"#\" data-ng-if=\"blockIndex !== blockCount - 1\">&#9660;</a><a href=\"#\">Layout</a> <a href=\"#\">X</a></p></div>\n" +
+    "<div class=\"block-body\" data-ng-class=\"getColumnClasses($index)\" data-ng-repeat=\"column in data.columns track by $index\">\n" +
+    "  <div class=\"stamp-component-wrapper component-{{$index}}\" data-ng-repeat=\"component in column.components track by $index\">\n" +
+    "     <stamp-component data=\"component\" col-index=\"$parent.$index\" com-index=\"$index\" com-count=\"column.components.length\"></stamp-component>\n" +
+    "  </div>\n" +
+    "  <div data-ng-if=\"!parent.locked && !parent.readOnly\"><input class=\"btn btn-default btn-lg center-block\" type=\"button\" value=\"+ Component\" data-ng-click=\"addComponent($parent.$index)\"></div>\n" +
+    "</div>");
+}]);
+})();
+
+;'use strict';
 
 // https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Object/assign
 if (typeof Object.assign != 'function') {
@@ -27,12 +42,15 @@ if (typeof Object.assign != 'function') {
 try { module = angular.module("stamp"); }
 catch(err) { module = angular.module("stamp", []); }
 module.run(["$templateCache", function($templateCache) {
-  $templateCache.put("src/angular/templates/block.html",
-    "<div data-ng-class=\"getColumnClasses($index)\" data-ng-repeat=\"column in data.columns track by $index\">\n" +
-    "  <div class=\"stack-component component-{{$index}}\" data-ng-repeat=\"component in column.components track by $index\">\n" +
-    "     <stamp-component data=\"component\" col-index=\"$parent.$index\" com-index=\"$index\"></stamp-component>\n" +
+  $templateCache.put("src/angular/templates/component.html",
+    "<div class=\"component-wrap\">\n" +
+    "  <div class=\"component-header\">\n" +
+    "    <p><a href=\"#\" data-ng-if=\"comIndex !== 0\">&#9650;</a> <a href=\"#\" data-ng-if=\"comIndex !== comCount - 1\">&#9660;</a> <a href=\"#\">X</a></p>\n" +
     "  </div>\n" +
-    "  <div data-ng-if=\"!parent.locked && !parent.readOnly\"><input class=\"btn btn-default\" type=\"button\" value=\"+ Component\" data-ng-click=\"addComponent($parent.$index)\"></div>\n" +
+    "  <div class=\"alert alert-danger\" data-ng-if=\"error\">{{error}}</div>\n" +
+    "  <div class=\"component-body\">\n" +
+    "    <div data-ng-if=\"componentError\">{{componentError}}</div>\n" +
+    "  </div>\n" +
     "</div>");
 }]);
 })();
@@ -160,16 +178,14 @@ module.run(["$templateCache", function($templateCache) {
 try { module = angular.module("stamp"); }
 catch(err) { module = angular.module("stamp", []); }
 module.run(["$templateCache", function($templateCache) {
-  $templateCache.put("src/angular/templates/component.html",
-    "<div class=\"component-wrap\">\n" +
-    "  <div class=\"component-header\">\n" +
-    "    <!--<p class=\"h4\" ng-bind=\"name\"></p>-->\n" +
-    "    <controls><!--<span class=\"fa fa-cog\" ng-click=\"edit()\"></span>--><span class=\"fa fa-times\" data-ng-click=\"remove()\"></span></controls>\n" +
+  $templateCache.put("src/angular/templates/editor.html",
+    "<div class=\"stamp-stack-container\">\n" +
+    " <!-- {{json | json}} -->\n" +
+    "  <div class=\"stamp-block-wrapper block-{{$index}} row\" data-ng-repeat=\"block in json.blocks\">\n" +
+    "    <stamp-block data=\"block\" block-index=\"$index\" block-count=\"json.blocks.length\" class=\"clearfix\"></stamp-block>\n" +
     "  </div>\n" +
-    "  <div class=\"alert alert-danger\" data-ng-if=\"error\">{{error}}</div>\n" +
-    "  <div class=\"component-body\">\n" +
-    "    <div data-ng-if=\"componentError\">{{componentError}}</div>\n" +
-    "  </div>\n" +
+    "  <div class=\"no-config\" data-ng-if=\"!json.blocks || json.blocks.length == 0\">No Blocks</div>\n" +
+    "  <div data-ng-if=\"!locked && !readOnly\"><input class=\"btn btn-default btn-lg center-block\" type=\"button\" value=\"+ Block\" data-ng-click=\"addBlock()\"></div>\n" +
     "</div>");
 }]);
 })();
@@ -184,7 +200,7 @@ module.run(["$templateCache", function($templateCache) {
     return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
   }
 
-  var stamp = angular.module('stamp', [/*'stamp.models', 'stamp.mappers', */'stampSetup']);
+  var stamp = angular.module('stamp', [/*'stamp.models', 'stamp.mappers', */'stampSetup', 'ui.bootstrap']);
   stamp.value('stampConfig', {});
   stamp.directive('stampEditor', ['$rootScope', '$compile', '$timeout', '$window', 'stampConfig', function ($rootScope, $compile, $timeout, $window, stampConfig) {
     stampConfig = stampConfig || {};
@@ -329,8 +345,10 @@ module.run(["$templateCache", function($templateCache) {
       require: '^stampEditor',
       templateUrl: '../src/angular/templates/block.html',
       scope: {
-        data: '='
-      },
+        data: '=',
+        blockIndex: '=', // Block Index
+        blockCount: '=' },
+      // Block Count
       link: function link(scope, element, attrs, parentCtrl) {
 
         // Watch for layout changes
@@ -373,21 +391,24 @@ module.run(["$templateCache", function($templateCache) {
           var combinedClass = 'stack-column column-' + columnIndex + ' ';
 
           if (scope.layout.columnStyles === undefined) {
-            combinedClass += 'no-col-styles';
+            combinedClass += 'col-md-12';
           } else if (angular.isObject(scope.layout.columnStyles)) {
 
             // Loop over each sizing and add as classes
-            for (var s = 0, sl = scope.layout.columnStyles.length; s < sl; s++) {
+            for (var size in scope.layout.columnStyles) {
+              if (scope.layout.columnStyles.hasOwnProperty(size)) {
+                var layoutSize = scope.layout.columnStyles[size];
 
-              var layoutSize = scope.layout.columnStyles[s];
-
-              if (angular.isArray(layoutSize)) {
-                // Is Array
-                var calculatedIndex = columnIndex > layoutSize.length - 1 ? layoutSize.length - 1 : columnIndex;
-                combinedClass += 'col-' + scope.layout.columnStyles[calculatedIndex];
-              } else {
-                // Is String
-                combinedClass += 'col-' + scope.layout.columnStyles;
+                if (angular.isArray(layoutSize)) {
+                  // Is Array
+                  var calculatedIndex = columnIndex > layoutSize.length - 1 ? layoutSize.length - 1 : columnIndex;
+                  combinedClass += 'col-' + size + '-' + layoutSize[calculatedIndex];
+                } else {
+                  // Is String
+                  combinedClass += 'col-' + size + '-' + layoutSize;
+                }
+                // Pad between classes
+                combinedClass += ' ';
               }
             }
           } else {
@@ -425,23 +446,33 @@ module.run(["$templateCache", function($templateCache) {
     };
   }]);
 
-  stamp.directive('stampComponent', ['$compile', function ($compile) {
+  stamp.directive('stampComponent', ['$compile', 'stampComponents', function ($compile) {
     return {
       restrict: 'E',
       require: '^stampBlock',
       templateUrl: '../src/angular/templates/component.html',
       scope: {
         data: '=',
-        index: '='
-      },
+        index: '=',
+        colIndex: '=', // Column Index
+        comIndex: '=', // Component Index
+        comCount: '=' },
+      // Components Count
       link: function link(scope, element, attrs, parentCtrl) {
         if (!scope.data || !scope.data.type) {
-          scope.componentError = 'Missing vital component data';
+          scope.componentError = 'Missing required component data';
           return;
         }
 
-        var componentName = camelToHyphen(scope.data.type);
-        var template = '<' + componentName + ' data="data"></' + componentName + '>';
+        var directive = stampComponents[scope.data.type];
+
+        if (!directive) {
+          scope.componentError = 'No component registered for type: ' + scope.data.type;
+          return;
+        }
+
+        var directiveName = camelToHyphen(directive.directive);
+        var template = '<' + directiveName + ' data="data.data"></' + directiveName + '>';
         var $template = $compile(template)(scope);
 
         // Append to last child within the component container
@@ -455,22 +486,6 @@ module.run(["$templateCache", function($templateCache) {
     };
   }]);
 })();
-;(function(module) {
-try { module = angular.module("stamp"); }
-catch(err) { module = angular.module("stamp", []); }
-module.run(["$templateCache", function($templateCache) {
-  $templateCache.put("src/angular/templates/editor.html",
-    "<div class=\"stamp-stack-container\">\n" +
-    "  {{json | json}}\n" +
-    "  <div class=\"stack-block block-{{$index}}\" data-ng-repeat=\"block in json.blocks\">\n" +
-    "    <stamp-block data=\"block\" index=\"$index\"></stamp-block>\n" +
-    "  </div>\n" +
-    "  <div class=\"no-config\" data-ng-if=\"!json.blocks || json.blocks.length == 0\">No Blocks</div>\n" +
-    "  <div data-ng-if=\"!locked && !readOnly\"><input class=\"btn btn-default\" type=\"button\" value=\"+ Block\" data-ng-click=\"addBlock()\"></div>\n" +
-    "</div>");
-}]);
-})();
-
 ;'use strict';
 
 // Taken from textAngular Setup
@@ -552,17 +567,43 @@ angular.module('stampSetup', []).constant('stampRegister', {
     }
   });
 
-  stampRegister.component('text', function () {
-    return {
-      directive: 'stampTextComponent',
-      icon: 'text'
-    };
+  stampRegister.component('text', {
+    directive: 'stampTextComponent',
+    icon: 'text'
   });
 
-  stampRegister.component('title', function () {
-    return {
-      directive: 'stampTitleComponent',
-      icon: 'title'
-    };
+  stampRegister.component('title', {
+    directive: 'stampHeadingComponent',
+    icon: 'title'
   });
+}]).directive('stampTextComponent', ['$compile', function ($compile) {
+  return {
+    restrict: 'E',
+    //require: 'ngModel',
+    template: '<textarea placeholder="Enter Text.." class="form-control" ng-model="data" rows="3"></textarea>',
+    scope: {
+      data: '='
+    }
+  };
+}]).directive('stampHeadingComponent', ['$compile', function ($compile) {
+  return {
+    restrict: 'E',
+    //require: 'ngModel',
+    template: '<div class="input-group size-h{{data.size || 1}}">\
+                <input type="text" placeholder="Enter Heading Text.." class="form-control" ng-model="data.value">\
+                <div class="input-group-btn" uib-dropdown>\
+                  <button type="button" class="btn btn-default" uib-dropdown-toggle>{{"H" + data.size}} <span class="caret"></span></button>\
+                  <ul class="dropdown-menu" uib-dropdown-menu>\
+                    <li ng-repeat="size in [1, 2, 3]"><a href="#" ng-click="data.size = size">{{"H" + size}}</a></li>\
+                  </ul>\
+                </div>\
+              </div>',
+    //template: '<input type="text" placeholder="Enter Heading Text.." class="form-control size-h{{data.size || 1}}" ng-model="data.value">',
+    scope: {
+      data: '='
+    },
+    link: function link(scope) {
+      //scope.isopen = false
+    }
+  };
 }]);

@@ -1,7 +1,6 @@
 <div class="component-wrap">
   <div class="component-header">
-    <!--<p class="h4" ng-bind="name"></p>-->
-    <controls><!--<span class="fa fa-cog" ng-click="edit()"></span>--><span class="fa fa-times" ng-click="remove()"></span></controls>
+    <p><a href="#" ng-if="comIndex !== 0">&#9650;</a> <a href="#" ng-if="comIndex !== comCount - 1">&#9660;</a> <a href="#">X</a></p>
   </div>
   <div ng-if="error" class="alert alert-danger">{{error}}</div>
   <div class="component-body">

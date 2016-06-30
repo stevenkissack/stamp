@@ -79,17 +79,43 @@ angular.module('stampSetup', []).constant('stampRegister', {
     }
   });
 
-  stampRegister.component('text', function () {
-    return {
-      directive: 'stampTextComponent',
-      icon: 'text'
-    };
+  stampRegister.component('text', {
+    directive: 'stampTextComponent',
+    icon: 'text'
   });
 
-  stampRegister.component('title', function () {
-    return {
-      directive: 'stampTitleComponent',
-      icon: 'title'
-    };
+  stampRegister.component('title', {
+    directive: 'stampHeadingComponent',
+    icon: 'title'
   });
+}]).directive('stampTextComponent', ['$compile', function ($compile) {
+  return {
+    restrict: 'E',
+    //require: 'ngModel',
+    template: '<textarea placeholder="Enter Text.." class="form-control" ng-model="data" rows="3"></textarea>',
+    scope: {
+      data: '='
+    }
+  };
+}]).directive('stampHeadingComponent', ['$compile', function ($compile) {
+  return {
+    restrict: 'E',
+    //require: 'ngModel',
+    template: '<div class="input-group size-h{{data.size || 1}}">\
+                <input type="text" placeholder="Enter Heading Text.." class="form-control" ng-model="data.value">\
+                <div class="input-group-btn" uib-dropdown>\
+                  <button type="button" class="btn btn-default" uib-dropdown-toggle>{{"H" + data.size}} <span class="caret"></span></button>\
+                  <ul class="dropdown-menu" uib-dropdown-menu>\
+                    <li ng-repeat="size in [1, 2, 3]"><a href="#" ng-click="data.size = size">{{"H" + size}}</a></li>\
+                  </ul>\
+                </div>\
+              </div>',
+    //template: '<input type="text" placeholder="Enter Heading Text.." class="form-control size-h{{data.size || 1}}" ng-model="data.value">',
+    scope: {
+      data: '='
+    },
+    link: function link(scope) {
+      //scope.isopen = false
+    }
+  };
 }]);
