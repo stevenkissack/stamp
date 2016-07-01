@@ -147,6 +147,30 @@
     };
   }]);
 
+  // This will only run on load for now as it had issues sizing correctly
+  stamp.directive("stampAutoHeight", function ($timeout) {
+    return {
+      restrict: 'A',
+      link: function link($scope, element) {
+        var resize = function resize() {
+          var calcHeight = element[0].scrollHeight; // - 12 // Remove bootstrap top & bottom padding
+          if (calcHeight < 25) {
+            element[0].style.height = 25 + 'px'; // Minimum
+          } else {
+              // add 10px just for presentation..this will mess up when listening to onchanges
+              calcHeight += 10;
+              element[0].style.height = calcHeight + 'px';
+            }
+        };
+
+        // this was having issues calculating the right size
+        // element.on("blur keyup change", resize)
+
+        $timeout(resize, 0);
+      }
+    };
+  });
+
   stamp.directive('stampBlock', ['stampLayouts', function (stampLayouts) {
     return {
       restrict: 'E',
@@ -237,7 +261,16 @@
           // TODO: This is called by the child stampComponent
           console.log('TODO');
         };
+        this.moveComponent = function (columnIndex, newColumnIndex, componentIndex, newComponentIndex) {
+          var ref = $scope.data.columns[columnIndex].components;
 
+          // Remove
+          var componentRemoved = ref.splice(componentIndex, 1);
+
+          // Add
+          // Insert at top if new component index isn't passed
+          $scope.data.columns[newColumnIndex].components.splice(newComponentIndex || 0, 0, componentRemoved[0]);
+        };
         /*
         this.setLayout = function (name) {
           console.log('Called setLayout on block. TODO')
@@ -272,23 +305,40 @@
           return;
         }
 
-        var directive = stampComponents[scope.data.type];
+        // Runs on a scope watch for type as template needs to change based on type attr
+        function updateTemplate() {
+          var directive = stampComponents[scope.data.type];
 
-        if (!directive) {
-          scope.componentError = 'No component registered for type: ' + scope.data.type;
-          return;
+          if (!directive) {
+            scope.componentError = 'No component registered for type: ' + scope.data.type;
+            return;
+          }
+
+          var directiveName = camelToHyphen(directive.directive);
+          var template = '<' + directiveName + ' data="data.data"></' + directiveName + '>';
+
+          // Remove old & append to last child within the component container
+          element[0].getElementsByClassName('component-body')[0].innerHTML = template;
+          $compile(element.contents())(scope);
         }
 
-        var directiveName = camelToHyphen(directive.directive);
-        var template = '<' + directiveName + ' data="data.data"></' + directiveName + '>';
-        var $template = $compile(template)(scope);
+        scope.$watch('data.type', function (newVal, oldVal) {
+          if (newVal !== oldVal) {
+            updateTemplate();
+          }
+        });
+        updateTemplate();
 
-        // Append to last child within the component container
-        element[0].getElementsByClassName('component-body')[0].appendChild($template[0]);
-
-        scope.remove = function (colIndex, comIndex) {
+        scope.remove = function () {
           // Send to parent to remove
-          parentCtrl.removeComponent(colIndex, comIndex);
+          parentCtrl.removeComponent(scope.colIndex, scope.comIndex);
+        };
+        scope.moveUp = function () {
+          // params: old col, new col, old com place, new com place
+          parentCtrl.moveComponent(scope.colIndex, scope.colIndex, scope.comIndex, scope.comIndex - 1);
+        };
+        scope.moveDown = function () {
+          parentCtrl.moveComponent(scope.colIndex, scope.colIndex, scope.comIndex, scope.comIndex + 1);
         };
       }
     };

@@ -54,7 +54,7 @@ angular.module('stampSetup')
   // TODO: float/align, label, alt, frames
   return {
     restrict: 'E',
-    template: '<textarea placeholder="Enter HTML.." class="form-control" ng-model="data" rows="3"></textarea>',
+    template: '<textarea stamp-auto-height placeholder="Enter HTML.." class="form-control" ng-model="data" rows="3"></textarea>',
     scope: {
       data: '='
     },

@@ -99,7 +99,7 @@ angular.module('stampSetup', [])
   return {
     restrict: 'E',
     //require: 'ngModel',
-    template: '<textarea placeholder="Enter Text.." class="form-control" ng-model="data" rows="3"></textarea>',
+    template: '<textarea stamp-auto-height placeholder="Enter Text.." class="form-control" ng-model="data" rows="3"></textarea>',
     scope: {
       data: '='
     }

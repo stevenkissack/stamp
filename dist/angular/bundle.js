@@ -38,23 +38,6 @@ if (typeof Object.assign != 'function') {
     return target;
   };
 }
-;(function(module) {
-try { module = angular.module("stamp"); }
-catch(err) { module = angular.module("stamp", []); }
-module.run(["$templateCache", function($templateCache) {
-  $templateCache.put("src/angular/templates/component.html",
-    "<div class=\"component-wrap\">\n" +
-    "  <div class=\"component-header\">\n" +
-    "    <p><a href=\"#\" data-ng-if=\"comIndex !== 0\">&#9650;</a> <a href=\"#\" data-ng-if=\"comIndex !== comCount - 1\">&#9660;</a> <a href=\"#\">X</a></p>\n" +
-    "  </div>\n" +
-    "  <div class=\"alert alert-danger\" data-ng-if=\"error\">{{error}}</div>\n" +
-    "  <div class=\"component-body\">\n" +
-    "    <div data-ng-if=\"componentError\">{{componentError}}</div>\n" +
-    "  </div>\n" +
-    "</div>");
-}]);
-})();
-
 ;'use strict';
 
 (function () {
@@ -178,14 +161,15 @@ module.run(["$templateCache", function($templateCache) {
 try { module = angular.module("stamp"); }
 catch(err) { module = angular.module("stamp", []); }
 module.run(["$templateCache", function($templateCache) {
-  $templateCache.put("src/angular/templates/editor.html",
-    "<div class=\"stamp-stack-container\">\n" +
-    " <!-- {{json | json}} -->\n" +
-    "  <div class=\"stamp-block-wrapper block-{{$index}} row\" data-ng-repeat=\"block in json.blocks\">\n" +
-    "    <stamp-block data=\"block\" block-index=\"$index\" block-count=\"json.blocks.length\" class=\"clearfix\"></stamp-block>\n" +
+  $templateCache.put("src/angular/templates/component.html",
+    "<div class=\"component-wrap\">\n" +
+    "  <div class=\"component-header\">\n" +
+    "    <p class=\"pull-right\"><a href=\"#\" data-ng-if=\"comIndex !== 0\" data-ng-click=\"moveUp()\">&#9650;</a> <a href=\"#\" data-ng-if=\"comIndex !== comCount - 1\" data-ng-click=\"moveDown()\">&#9660;</a> <a href=\"#\" data-ng-click=\"remove()\">X</a></p>\n" +
     "  </div>\n" +
-    "  <div class=\"no-config\" data-ng-if=\"!json.blocks || json.blocks.length == 0\">No Blocks</div>\n" +
-    "  <div data-ng-if=\"!locked && !readOnly\"><input class=\"btn btn-default btn-lg center-block\" type=\"button\" value=\"+ Block\" data-ng-click=\"addBlock()\"></div>\n" +
+    "  <div class=\"alert alert-danger\" data-ng-if=\"error\">{{error}}</div>\n" +
+    "  <div class=\"component-body\">\n" +
+    "    <div data-ng-if=\"componentError\">{{componentError}}</div>\n" +
+    "  </div>\n" +
     "</div>");
 }]);
 })();
@@ -339,6 +323,30 @@ module.run(["$templateCache", function($templateCache) {
     };
   }]);
 
+  // This will only run on load for now as it had issues sizing correctly
+  stamp.directive("stampAutoHeight", function ($timeout) {
+    return {
+      restrict: 'A',
+      link: function link($scope, element) {
+        var resize = function resize() {
+          var calcHeight = element[0].scrollHeight; // - 12 // Remove bootstrap top & bottom padding
+          if (calcHeight < 25) {
+            element[0].style.height = 25 + 'px'; // Minimum
+          } else {
+              // add 10px just for presentation..this will mess up when listening to onchanges
+              calcHeight += 10;
+              element[0].style.height = calcHeight + 'px';
+            }
+        };
+
+        // this was having issues calculating the right size
+        // element.on("blur keyup change", resize)
+
+        $timeout(resize, 0);
+      }
+    };
+  });
+
   stamp.directive('stampBlock', ['stampLayouts', function (stampLayouts) {
     return {
       restrict: 'E',
@@ -429,7 +437,16 @@ module.run(["$templateCache", function($templateCache) {
           // TODO: This is called by the child stampComponent
           console.log('TODO');
         };
+        this.moveComponent = function (columnIndex, newColumnIndex, componentIndex, newComponentIndex) {
+          var ref = $scope.data.columns[columnIndex].components;
 
+          // Remove
+          var componentRemoved = ref.splice(componentIndex, 1);
+
+          // Add
+          // Insert at top if new component index isn't passed
+          $scope.data.columns[newColumnIndex].components.splice(newComponentIndex || 0, 0, componentRemoved[0]);
+        };
         /*
         this.setLayout = function (name) {
           console.log('Called setLayout on block. TODO')
@@ -464,28 +481,61 @@ module.run(["$templateCache", function($templateCache) {
           return;
         }
 
-        var directive = stampComponents[scope.data.type];
+        // Runs on a scope watch for type as template needs to change based on type attr
+        function updateTemplate() {
+          var directive = stampComponents[scope.data.type];
 
-        if (!directive) {
-          scope.componentError = 'No component registered for type: ' + scope.data.type;
-          return;
+          if (!directive) {
+            scope.componentError = 'No component registered for type: ' + scope.data.type;
+            return;
+          }
+
+          var directiveName = camelToHyphen(directive.directive);
+          var template = '<' + directiveName + ' data="data.data"></' + directiveName + '>';
+
+          // Remove old & append to last child within the component container
+          element[0].getElementsByClassName('component-body')[0].innerHTML = template;
+          $compile(element.contents())(scope);
         }
 
-        var directiveName = camelToHyphen(directive.directive);
-        var template = '<' + directiveName + ' data="data.data"></' + directiveName + '>';
-        var $template = $compile(template)(scope);
+        scope.$watch('data.type', function (newVal, oldVal) {
+          if (newVal !== oldVal) {
+            updateTemplate();
+          }
+        });
+        updateTemplate();
 
-        // Append to last child within the component container
-        element[0].getElementsByClassName('component-body')[0].appendChild($template[0]);
-
-        scope.remove = function (colIndex, comIndex) {
+        scope.remove = function () {
           // Send to parent to remove
-          parentCtrl.removeComponent(colIndex, comIndex);
+          parentCtrl.removeComponent(scope.colIndex, scope.comIndex);
+        };
+        scope.moveUp = function () {
+          // params: old col, new col, old com place, new com place
+          parentCtrl.moveComponent(scope.colIndex, scope.colIndex, scope.comIndex, scope.comIndex - 1);
+        };
+        scope.moveDown = function () {
+          parentCtrl.moveComponent(scope.colIndex, scope.colIndex, scope.comIndex, scope.comIndex + 1);
         };
       }
     };
   }]);
 })();
+;(function(module) {
+try { module = angular.module("stamp"); }
+catch(err) { module = angular.module("stamp", []); }
+module.run(["$templateCache", function($templateCache) {
+  $templateCache.put("src/angular/templates/editor.html",
+    "<div class=\"stamp-stack-container\">\n" +
+    " <!-- {{json | json}} -->\n" +
+    "  <div class=\"stamp-block-wrapper block-{{$index}} row\" data-ng-repeat=\"block in json.blocks\">\n" +
+    "    <stamp-block data=\"block\" block-index=\"$index\" block-count=\"json.blocks.length\" class=\"clearfix\"></stamp-block>\n" +
+    "  </div>\n" +
+    "  <div class=\"no-config\" data-ng-if=\"!json.blocks || json.blocks.length == 0\">No Blocks</div>\n" +
+    "  <div data-ng-if=\"!locked && !readOnly\"><input class=\"btn btn-default btn-lg center-block\" type=\"button\" value=\"+ Block\" data-ng-click=\"addBlock()\"></div>\n" +
+    "</div>");
+}]);
+})();
+
 ;'use strict';
 
 // Taken from textAngular Setup
@@ -580,7 +630,7 @@ angular.module('stampSetup', []).constant('stampRegister', {
   return {
     restrict: 'E',
     //require: 'ngModel',
-    template: '<textarea placeholder="Enter Text.." class="form-control" ng-model="data" rows="3"></textarea>',
+    template: '<textarea stamp-auto-height placeholder="Enter Text.." class="form-control" ng-model="data" rows="3"></textarea>',
     scope: {
       data: '='
     }

@@ -86,7 +86,7 @@
                 },
                 {
                   type: 'text',
-                  data: "It's a cosmopolitan final table with no less than seven nationalities represented and unlike Strong, who knows what it's like to win a major poker tournament, the vast majority of those who line up behind him are still waiting for their breakout result."
+                  data: "It's a cosmopolitan final table with no less than seven nationalities represented and unlike Stroolitan final table with no less than seven nationalities represented and unlike Stroolitan final table with no less than seven nationalities represented and unlike Stroolitan final table with no less than seven nationalities represented and unlike Stroolitan final table with no less than seven nationalities represented and unlike Stroolitan final table with no less than seven nationalities represented and unlike Stroolitan final table with no less than seven nationalities represented and unlike Stroolitan final table with no less than seven nationalities represented and unlike Strong, who knows what it's like to win a major poker tournament, the vast majority of those who line up behind him are still waiting for their breakout result."
                 }
               ]
             }

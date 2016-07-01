@@ -1,6 +1,6 @@
 <div class="component-wrap">
   <div class="component-header">
-    <p><a href="#" ng-if="comIndex !== 0">&#9650;</a> <a href="#" ng-if="comIndex !== comCount - 1">&#9660;</a> <a href="#">X</a></p>
+    <p class="pull-right"><a href="#" ng-if="comIndex !== 0" ng-click="moveUp()">&#9650;</a> <a href="#" ng-if="comIndex !== comCount - 1" ng-click="moveDown()">&#9660;</a> <a href="#" ng-click="remove()">X</a></p>
   </div>
   <div ng-if="error" class="alert alert-danger">{{error}}</div>
   <div class="component-body">
