@@ -45,13 +45,13 @@ angular.module('stampSetup', []).constant('stampRegister', {
 }).run(['stampRegister', '$window', 'stampTranslations', 'stampOptions', function (stampRegister, $window, stampTranslations, stampOptions) {
 
   stampRegister.layout('fluid', {
-    icon: 'tint',
+    //icon: 'tint',
     label: 'Fluid', // TODO: stampTranslations.layouts.fluid,
     maxColumns: undefined
   });
 
   stampRegister.layout('oneColumn', {
-    icon: 'square',
+    //icon: 'square',
     label: 'One Column', // TODO: stampTranslations.layouts.oneColumn,
     maxColumns: 1,
     columnStyles: {
@@ -60,7 +60,7 @@ angular.module('stampSetup', []).constant('stampRegister', {
   });
 
   stampRegister.layout('twoColumn', {
-    icon: 'pause',
+    //icon: 'pause',
     label: 'Two Even Columns', // TODO: stampTranslations.layouts.,
     maxColumns: 2,
     columnStyles: {
@@ -70,7 +70,7 @@ angular.module('stampSetup', []).constant('stampRegister', {
   });
 
   stampRegister.layout('threeColumn', {
-    icon: 'todo',
+    //icon: 'todo',
     label: 'Three Columns', // TODO: stampTranslations.layouts.,
     maxColumns: 3,
     columnStyles: {
@@ -81,18 +81,20 @@ angular.module('stampSetup', []).constant('stampRegister', {
 
   stampRegister.component('text', {
     directive: 'stampTextComponent',
-    icon: 'text'
+    label: 'Text',
+    icon: 'fa fa-paragraph'
   });
 
   stampRegister.component('title', {
     directive: 'stampHeadingComponent',
-    icon: 'title'
+    label: 'Title',
+    icon: 'fa fa-header'
   });
 }]).directive('stampTextComponent', ['$compile', function ($compile) {
   return {
     restrict: 'E',
     //require: 'ngModel',
-    template: '<textarea stamp-auto-height placeholder="Enter Text.." class="form-control" ng-model="data" rows="3"></textarea>',
+    template: '<textarea stamp-auto-height placeholder="Enter Text.." class="form-control" ng-model="data.value"></textarea>',
     scope: {
       data: '='
     }
@@ -106,7 +108,7 @@ angular.module('stampSetup', []).constant('stampRegister', {
                 <div class="input-group-btn" uib-dropdown>\
                   <button type="button" class="btn btn-default" uib-dropdown-toggle>{{"H" + data.size}} <span class="caret"></span></button>\
                   <ul class="dropdown-menu" uib-dropdown-menu>\
-                    <li ng-repeat="size in [1, 2, 3]"><a href="#" ng-click="data.size = size">{{"H" + size}}</a></li>\
+                    <li ng-repeat="size in [1, 2, 3]"><a ng-click="data.size = size">{{"H" + size}}</a></li>\
                   </ul>\
                 </div>\
               </div>',
@@ -115,7 +117,10 @@ angular.module('stampSetup', []).constant('stampRegister', {
       data: '='
     },
     link: function link(scope) {
-      //scope.isopen = false
+      // Set default size when adding (maybe want this to be 2?)
+      if (scope.data.size === undefined) {
+        scope.data.size = 1;
+      }
     }
   };
 }]);

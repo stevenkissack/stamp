@@ -33,6 +33,9 @@ stamp-editor stamp-component {
 stamp-editor .form-control {
 	border-color: #FEFEFE;
 }
+stamp-editor .btn {
+	width: 100%;
+}
 stamp-editor .btn-default {
 	border-color: #FEFEFE;
   color: #ccc;
@@ -44,7 +47,6 @@ stamp-editor .btn-default {
 stamp-editor .stamp-component-wrapper .component-header {
 	opacity: 0;
 	height: 0;
-	transition: opacity ease-in-out .25s;
 
 	/* Positions the header bar correctly above the body */
 	position: absolute;
@@ -58,7 +60,6 @@ stamp-editor .stamp-component-wrapper:hover .component-header {
 	opacity: 1;
 	height: 25px;
 	top: -25px;
-	transition: opacity ease-in-out .25s;
 }
 stamp-editor .stamp-component-wrapper:hover {
 	border: 1px dashed #838383;

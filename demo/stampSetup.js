@@ -3,7 +3,7 @@ angular.module('stampSetup')
 
   // Move these into core after testing this run block works
   stampRegister.layout('TwoColumnsLeftMain', {
-    icon: 'question-mark',
+    //icon: 'question-mark',
     label: 'Left Weighted Two Columns', // TODO: stampTranslations.layouts.,
     maxColumns: 2,
     columnStyles: {
@@ -13,7 +13,7 @@ angular.module('stampSetup')
   })
 
   stampRegister.layout('TwoColumnsRightMain', {
-    icon: 'question-mark',
+    //icon: 'question-mark',
     label: 'Right Weighted Two Columns', // TODO: stampTranslations.layouts.,
     maxColumns: 2,
     columnStyles: {
@@ -23,7 +23,7 @@ angular.module('stampSetup')
   })
 
   /*stampRegister.layout('fourColumn', {
-    icon: 'todo',
+    //icon: 'todo',
     label: 'Three Columns', // TODO: stampTranslations.layouts.,
     maxColumns: 4,
     columns: {
@@ -34,17 +34,20 @@ angular.module('stampSetup')
   })*/
 
   stampRegister.component('html', {
-    icon: 'code',
+    icon: 'fa fa-code',
+    label: 'HTML',
     directive: 'stampHtmlComponent'
   })
 
   stampRegister.component('image', {
-    icon: 'image',
+    icon: 'fa fa-picture-o',
+    label: 'Image',
     directive: 'stampImageComponent'
   })
 
   stampRegister.component('table', {
-    icon: 'table',
+    icon: 'fa fa-table',
+    label: 'Table',
     directive: 'stampTableComponent'
   })
 
@@ -54,7 +57,7 @@ angular.module('stampSetup')
   // TODO: float/align, label, alt, frames
   return {
     restrict: 'E',
-    template: '<textarea stamp-auto-height placeholder="Enter HTML.." class="form-control" ng-model="data" rows="3"></textarea>',
+    template: '<textarea stamp-auto-height placeholder="Enter HTML.." class="form-control" ng-model="data.value"></textarea>',
     scope: {
       data: '='
     },
@@ -68,8 +71,8 @@ angular.module('stampSetup')
   // TODO: float/align, label, alt, frames
   return {
     restrict: 'E',
-    template: '<div class="image-responsive">\
-                <img ng-src="{{data.url}}" alt="{{data.alt || \'\'}}">\
+    template: '<div>\
+                <img ng-src="{{data.url}}" alt="{{data.alt || \'\'}}" class="img-responsive">\
               </div>',
     scope: {
       data: '='

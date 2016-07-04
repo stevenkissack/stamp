@@ -2,13 +2,20 @@
 try { module = angular.module("stamp"); }
 catch(err) { module = angular.module("stamp", []); }
 module.run(["$templateCache", function($templateCache) {
-  $templateCache.put("src/angular/templates/block.html",
-    "<div class=\"block-header clearfix\"><p class=\"pull-right\"><a href=\"#\" data-ng-if=\"blockIndex !== 0\">&#9650;</a><a href=\"#\" data-ng-if=\"blockIndex !== blockCount - 1\">&#9660;</a><a href=\"#\">Layout</a> <a href=\"#\">X</a></p></div>\n" +
-    "<div class=\"block-body\" data-ng-class=\"getColumnClasses($index)\" data-ng-repeat=\"column in data.columns track by $index\">\n" +
-    "  <div class=\"stamp-component-wrapper component-{{$index}}\" data-ng-repeat=\"component in column.components track by $index\">\n" +
-    "     <stamp-component data=\"component\" col-index=\"$parent.$index\" com-index=\"$index\" com-count=\"column.components.length\"></stamp-component>\n" +
+  $templateCache.put("src/angular/templates/addComponentModal.html",
+    "<div class=\"stamp-modal stamp-modal-add-component modal-content\">\n" +
+    "  <div class=\"modal-header\">\n" +
+    "    <button type=\"button\" class=\"close\" aria-label=\"Close\" data-ng-click=\"close()\"><span aria-hidden=\"true\">&times;</span></button>\n" +
+    "    <h4 class=\"modal-title\">Add Component</h4>\n" +
     "  </div>\n" +
-    "  <div data-ng-if=\"!parent.locked && !parent.readOnly\"><input class=\"btn btn-default btn-lg center-block\" type=\"button\" value=\"+ Component\" data-ng-click=\"addComponent($parent.$index)\"></div>\n" +
+    "  <div class=\"modal-body\">\n" +
+    "    <div class=\"component-list\">\n" +
+    "      <div class=\"component-list-item\" data-ng-class=\"{'no-icon' : !value.icon}\" data-ng-repeat=\"(key, value) in components\" data-ng-click=\"insert(key)\">\n" +
+    "        <i class=\"{{value.icon}}\" data-ng-if=\"value.icon\"></i>\n" +
+    "        <span>{{value.label}}</span>\n" +
+    "      </div>\n" +
+    "    </div>\n" +
+    "  </div>\n" +
     "</div>");
 }]);
 })();
@@ -38,6 +45,47 @@ if (typeof Object.assign != 'function') {
     return target;
   };
 }
+;(function(module) {
+try { module = angular.module("stamp"); }
+catch(err) { module = angular.module("stamp", []); }
+module.run(["$templateCache", function($templateCache) {
+  $templateCache.put("src/angular/templates/block.html",
+    "<div class=\"block-header clearfix\">\n" +
+    "    <span class=\"pull-right\">\n" +
+    "      <span uib-dropdown=\"\">\n" +
+    "        <a href=\"\" id=\"simple-dropdown\" uib-dropdown-toggle=\"\">Layout: {{layouts[data.attributes.layout].label}}</a>\n" +
+    "        <ul class=\"dropdown-menu\" uib-dropdown-menu=\"\" aria-labelledby=\"simple-dropdown\">\n" +
+    "          <li data-ng-repeat=\"(key, value) in layouts\">\n" +
+    "            <a data-ng-click=\"changeLayout(key)\">{{key == 'fluid' ? 'Remove Layout (Fluid)' : value.label}}</a>\n" +
+    "          </li>\n" +
+    "        </ul>\n" +
+    "      </span>\n" +
+    "      <a data-ng-if=\"blockIndex !== 0\" data-ng-click=\"moveUp()\">&#9650;</a>\n" +
+    "      <a data-ng-if=\"blockIndex !== blockCount - 1\" data-ng-click=\"moveDown()\">&#9660;</a>\n" +
+    "      <a data-ng-click=\"remove()\">X</a>\n" +
+    "    </span>\n" +
+    "</div>\n" +
+    "<div class=\"alert alert-danger\" data-ng-if=\"layout.maxColumns && layout.maxColumns < data.columns.length\">This layout has a column limit of {{layout.maxColumns}}, the column count is {{data.columns.length}}, switch to a {{data.columns.length}} column layout</div>\n" +
+    "<div class=\"block-body\">\n" +
+    "  <div data-ng-class=\"getColumnClasses($index)\" data-ng-repeat=\"column in data.columns track by $index\">\n" +
+    "    <div class=\"stamp-component-wrapper component-{{$index}}\" data-ng-repeat=\"component in column.components track by $index\">\n" +
+    "      <stamp-component data=\"component\" col-index=\"$parent.$index\" com-index=\"$index\" com-count=\"column.components.length\"></stamp-component>\n" +
+    "    </div>\n" +
+    "    <div data-ng-if=\"!parent.locked && !parent.readOnly\">\n" +
+    "      <input class=\"btn btn-warning btn-lg center-block\" type=\"button\" value=\"Remove Column\" data-ng-if=\"column.components.length == 0\" data-ng-click=\"removeColumn($index)\">\n" +
+    "      <input class=\"btn btn-default btn-lg center-block\" type=\"button\" value=\"+ Component\" data-ng-click=\"addComponent($parent.$index)\">\n" +
+    "    </div>\n" +
+    "  </div>\n" +
+    "  <!-- enable this instead of the below option when you've added the ability to add no middle column if 3 are missing on a 3 col layout <div ng-if=\"emptyColumnCount().length > 0\" ng-class=\"getColumnClasses($index, true)\" ng-repeat=\"emptyColumn in emptyColumnCount() track by $index\">\n" +
+    "    <div ng-if=\"!parent.locked && !parent.readOnly\"><input class=\"btn btn-default btn-lg center-block\" type=\"button\" ng-click=\"addColumn($index)\" value=\"+ Column\"></input></div>\n" +
+    "  </div>-->\n" +
+    "  <div data-ng-if=\"!parent.locked && !parent.readOnly && (emptyColumnCount().length > 0  && data.attributes.layout != 'fluid' || data.attributes.layout == 'fluid' && data.columns.length == 0)\" data-ng-class=\"getColumnClasses(0, true)\">\n" +
+    "    <input class=\"btn btn-default btn-lg center-block\" type=\"button\" value=\"+ Column\" data-ng-click=\"addColumn()\">\n" +
+    "  </div>\n" +
+    "</div>");
+}]);
+})();
+
 ;'use strict';
 
 (function () {
@@ -164,11 +212,10 @@ module.run(["$templateCache", function($templateCache) {
   $templateCache.put("src/angular/templates/component.html",
     "<div class=\"component-wrap\">\n" +
     "  <div class=\"component-header\">\n" +
-    "    <p class=\"pull-right\"><a href=\"#\" data-ng-if=\"comIndex !== 0\" data-ng-click=\"moveUp()\">&#9650;</a> <a href=\"#\" data-ng-if=\"comIndex !== comCount - 1\" data-ng-click=\"moveDown()\">&#9660;</a> <a href=\"#\" data-ng-click=\"remove()\">X</a></p>\n" +
+    "    <p class=\"pull-right\"><a data-ng-if=\"comIndex !== 0\" data-ng-click=\"moveUp()\">&#9650;</a> <a data-ng-if=\"comIndex !== comCount - 1\" data-ng-click=\"moveDown()\">&#9660;</a> <a data-ng-click=\"remove()\">X</a></p>\n" +
     "  </div>\n" +
-    "  <div class=\"alert alert-danger\" data-ng-if=\"error\">{{error}}</div>\n" +
+    "  <div class=\"alert alert-danger\" data-ng-if=\"componentError\">{{componentError}}</div>\n" +
     "  <div class=\"component-body\">\n" +
-    "    <div data-ng-if=\"componentError\">{{componentError}}</div>\n" +
     "  </div>\n" +
     "</div>");
 }]);
@@ -299,21 +346,27 @@ module.run(["$templateCache", function($templateCache) {
             // ng-model not set on editor
             console.log('Warning: missing ng-model definition on stamp editor');
           }
+
+        scope.addBlock = function (index) {
+          scope.json.blocks.splice(index !== undefined ? index : scope.json.blocks.length, 0, {
+            attributes: {},
+            columns: []
+          });
+        };
       },
       controller: ['$scope', function ($scope) {
-        /*this.addBlock = function (index, component) {
-          // TODO: Class check component
-          if(index === undefined || component === undefined) return
-          $scope.stack.add(index, component)
-        }
+
         this.removeBlock = function (index) {
-          if(index === undefined) return
-          $scope.stack.remove(index)
-        }
+          /*let blockDeleted = */$scope.json.blocks.splice(index, 1);
+        };
         this.moveBlock = function (index, newIndex) {
-          if(index === undefined || newIndex === undefined) return
-          $scope.stack.move(index, newIndex)
-        }*/
+
+          // Remove
+          var blockRemoved = $scope.json.blocks.splice(index, 1);
+
+          // Add
+          $scope.json.blocks.splice(newIndex, 0, blockRemoved[0]);
+        };
 
         // Maybe:
         /*this.toJSON = function() {
@@ -327,7 +380,7 @@ module.run(["$templateCache", function($templateCache) {
   stamp.directive("stampAutoHeight", function ($timeout) {
     return {
       restrict: 'A',
-      link: function link($scope, element) {
+      link: function link(scope, element) {
         var resize = function resize() {
           var calcHeight = element[0].scrollHeight; // - 12 // Remove bootstrap top & bottom padding
           if (calcHeight < 25) {
@@ -339,6 +392,12 @@ module.run(["$templateCache", function($templateCache) {
             }
         };
 
+        // resize all when layouts change, give timeout so the DOM is updated first
+        scope.$on('layoutChanged', function () {
+          element[0].style.height = 'auto';
+          $timeout(resize, 10);
+        });
+
         // this was having issues calculating the right size
         // element.on("blur keyup change", resize)
 
@@ -347,7 +406,7 @@ module.run(["$templateCache", function($templateCache) {
     };
   });
 
-  stamp.directive('stampBlock', ['stampLayouts', function (stampLayouts) {
+  stamp.directive('stampBlock', ['stampLayouts', '$uibModal', function (stampLayouts, $uibModal) {
     return {
       restrict: 'E',
       require: '^stampEditor',
@@ -358,6 +417,10 @@ module.run(["$templateCache", function($templateCache) {
         blockCount: '=' },
       // Block Count
       link: function link(scope, element, attrs, parentCtrl) {
+
+        scope.layouts = stampLayouts; // For dropdown
+        //scope.showAddComponent = false
+        //scope.addComponentIndex = undefined
 
         // Watch for layout changes
         scope.$watch(function () {
@@ -370,11 +433,11 @@ module.run(["$templateCache", function($templateCache) {
 
         function updateLayout(oldLayout, newLayout) {
           scope.layout = stampLayouts[newLayout];
-          scope.error = false;
+          scope.blockError = false;
 
           if (!scope.layout) {
             // Layout Missing
-            scope.error = 'Stamp markup requires missing layout: ' + newLayout;
+            scope.blockError = 'Stamp markup requires missing layout: ' + newLayout;
             return;
           }
 
@@ -383,8 +446,10 @@ module.run(["$templateCache", function($templateCache) {
             // Failed change as we have too many columns
             // Note: Should we change it back automatically?
             // scope.data.attributes.layout = oldValue
-            scope.error = 'This layout has a column limit of ' + scope.layout.maxColumns + ', the column count is ' + scope.data.columns.length;
+            scope.blockError = 'This layout has a column limit of ' + scope.layout.maxColumns + ', the column count is ' + scope.data.columns.length;
           }
+          console.log('broadcasting');
+          scope.$broadcast('layoutChanged', scope.data.attributes.layout);
         }
 
         // Note: Not sure what defaults to add at a block level
@@ -394,7 +459,11 @@ module.run(["$templateCache", function($templateCache) {
         // Manual call to get it ready for template calls to getColumnClasses
         updateLayout(undefined, scope.data.attributes.layout);
 
-        scope.getColumnClasses = function (columnIndex) {
+        scope.getColumnClasses = function (columnIndex, isEmptyColumn) {
+
+          // When getting classes for empty columns it needs to carry on from the last index
+          if (isEmptyColumn) columnIndex += scope.data.columns.length - 1;
+
           // Standard classes always applied
           var combinedClass = 'stack-column column-' + columnIndex + ' ';
 
@@ -428,14 +497,72 @@ module.run(["$templateCache", function($templateCache) {
         };
 
         scope.addComponent = function (columnIndex) {
-          // TODO: Called from block template
+
+          var modalInstance = $uibModal.open({
+            //animation: false,
+            templateUrl: '../src/angular/templates/addComponentModal.html',
+            controller: 'StampAddComponentModalInstanceCtrl' //,
+            //size: 'lg'
+          });
+
+          modalInstance.result.then(function (selectedType) {
+            scope.data.columns[columnIndex].components.push({
+              type: selectedType,
+              data: {}
+            });
+          } /*, function () {
+            }*/);
+
+          // disabled the below for now as just using pop-ups for simplicity
+          //scope.showAddComponent = true
+          // This is so we can add it in between components eventually
+          //scope.addComponentIndex = columnIndex
+        };
+
+        scope.moveUp = function () {
+          parentCtrl.moveBlock(scope.blockIndex, scope.blockIndex - 1);
+        };
+        scope.moveDown = function () {
+          parentCtrl.moveBlock(scope.blockIndex, scope.blockIndex + 1);
+        };
+        scope.remove = function () {
+          parentCtrl.removeBlock(scope.blockIndex);
+        };
+
+        scope.changeLayout = function (layout) {
+          // When fluid we want to remove all columns
+          if (layout === 'fluid') {
+            // Loop all and merge to first column
+            while (scope.data.columns.length > 1) {
+              var column = scope.data.columns.pop();
+              // Merge to first
+              scope.data.columns[0].components = scope.data.columns[0].components.concat(column.components);
+            }
+          }
+          scope.data.attributes.layout = layout;
+        };
+
+        scope.emptyColumnCount = function () {
+          if (!scope.layout.maxColumns) {
+            return new Array(0);
+          }
+          var count = scope.layout.maxColumns - scope.data.columns.length;
+          return new Array(count > -1 ? count : 0);
+        };
+
+        scope.addColumn = function () {
+          // TODO: How to handle adding right column with an empty middle one?
+          // This will just add the middle one instead, so the user needs to add two and leave the middle empty
+          scope.data.columns.push({ components: [] });
+        };
+        scope.removeColumn = function (index) {
+          scope.data.columns.splice(index, 1);
         };
       },
       controller: ['$scope', function ($scope) {
 
         this.removeComponent = function (columnIndex, componentIndex) {
-          // TODO: This is called by the child stampComponent
-          console.log('TODO');
+          $scope.data.columns[columnIndex].components.splice(componentIndex, 1);
         };
         this.moveComponent = function (columnIndex, newColumnIndex, componentIndex, newComponentIndex) {
           var ref = $scope.data.columns[columnIndex].components;
@@ -447,19 +574,18 @@ module.run(["$templateCache", function($templateCache) {
           // Insert at top if new component index isn't passed
           $scope.data.columns[newColumnIndex].components.splice(newComponentIndex || 0, 0, componentRemoved[0]);
         };
-        /*
-        this.setLayout = function (name) {
-          console.log('Called setLayout on block. TODO')
-          $scope.attributes.layout = name
-        }
-        this.addComponent = function (index, name) {
-          // Optional name otherwise show default picker
-          console.log('Called addComponent on block. TODO')
-        }
-        this.moveComponent = function (index, newIndex) {
-          console.log('Called removeComponent on block. TODO')
-        }*/
       }]
+    };
+  }]);
+
+  stamp.controller('StampAddComponentModalInstanceCtrl', ['$scope', '$uibModalInstance', 'stampComponents', function ($scope, $uibModalInstance, stampComponents) {
+    $scope.components = stampComponents;
+
+    $scope.insert = function (selected) {
+      $uibModalInstance.close(selected);
+    };
+    $scope.close = function () {
+      $uibModalInstance.dismiss();
     };
   }]);
 
@@ -494,8 +620,10 @@ module.run(["$templateCache", function($templateCache) {
           var template = '<' + directiveName + ' data="data.data"></' + directiveName + '>';
 
           // Remove old & append to last child within the component container
-          element[0].getElementsByClassName('component-body')[0].innerHTML = template;
-          $compile(element.contents())(scope);
+          // Only compile the new part of the DOM to stop duplicate compiles (can trigger multi clicks in header)
+          var bodyEl = angular.element(element[0].getElementsByClassName('component-body')[0]);
+          bodyEl.empty();
+          bodyEl.append($compile(angular.element(template))(scope));
         }
 
         scope.$watch('data.type', function (newVal, oldVal) {
@@ -583,13 +711,13 @@ angular.module('stampSetup', []).constant('stampRegister', {
 }).run(['stampRegister', '$window', 'stampTranslations', 'stampOptions', function (stampRegister, $window, stampTranslations, stampOptions) {
 
   stampRegister.layout('fluid', {
-    icon: 'tint',
+    //icon: 'tint',
     label: 'Fluid', // TODO: stampTranslations.layouts.fluid,
     maxColumns: undefined
   });
 
   stampRegister.layout('oneColumn', {
-    icon: 'square',
+    //icon: 'square',
     label: 'One Column', // TODO: stampTranslations.layouts.oneColumn,
     maxColumns: 1,
     columnStyles: {
@@ -598,7 +726,7 @@ angular.module('stampSetup', []).constant('stampRegister', {
   });
 
   stampRegister.layout('twoColumn', {
-    icon: 'pause',
+    //icon: 'pause',
     label: 'Two Even Columns', // TODO: stampTranslations.layouts.,
     maxColumns: 2,
     columnStyles: {
@@ -608,7 +736,7 @@ angular.module('stampSetup', []).constant('stampRegister', {
   });
 
   stampRegister.layout('threeColumn', {
-    icon: 'todo',
+    //icon: 'todo',
     label: 'Three Columns', // TODO: stampTranslations.layouts.,
     maxColumns: 3,
     columnStyles: {
@@ -619,18 +747,20 @@ angular.module('stampSetup', []).constant('stampRegister', {
 
   stampRegister.component('text', {
     directive: 'stampTextComponent',
-    icon: 'text'
+    label: 'Text',
+    icon: 'fa fa-paragraph'
   });
 
   stampRegister.component('title', {
     directive: 'stampHeadingComponent',
-    icon: 'title'
+    label: 'Title',
+    icon: 'fa fa-header'
   });
 }]).directive('stampTextComponent', ['$compile', function ($compile) {
   return {
     restrict: 'E',
     //require: 'ngModel',
-    template: '<textarea stamp-auto-height placeholder="Enter Text.." class="form-control" ng-model="data" rows="3"></textarea>',
+    template: '<textarea stamp-auto-height placeholder="Enter Text.." class="form-control" ng-model="data.value"></textarea>',
     scope: {
       data: '='
     }
@@ -644,7 +774,7 @@ angular.module('stampSetup', []).constant('stampRegister', {
                 <div class="input-group-btn" uib-dropdown>\
                   <button type="button" class="btn btn-default" uib-dropdown-toggle>{{"H" + data.size}} <span class="caret"></span></button>\
                   <ul class="dropdown-menu" uib-dropdown-menu>\
-                    <li ng-repeat="size in [1, 2, 3]"><a href="#" ng-click="data.size = size">{{"H" + size}}</a></li>\
+                    <li ng-repeat="size in [1, 2, 3]"><a ng-click="data.size = size">{{"H" + size}}</a></li>\
                   </ul>\
                 </div>\
               </div>',
@@ -653,7 +783,10 @@ angular.module('stampSetup', []).constant('stampRegister', {
       data: '='
     },
     link: function link(scope) {
-      //scope.isopen = false
+      // Set default size when adding (maybe want this to be 2?)
+      if (scope.data.size === undefined) {
+        scope.data.size = 1;
+      }
     }
   };
 }]);
