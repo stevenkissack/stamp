@@ -1,36 +1,29 @@
 <!doctype html>
 <html ng-app="app" lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Stamp Test App</title>
-  <link rel="stylesheet" type="text/css" href="externals/bootstrap/css/bootstrap.css">
-  <link rel="stylesheet" type="text/css" href="../src/style/stamp.css">
-  <link rel="stylesheet" type="text/css" href="style.css">
-  
-  <script type="text/javascript" src="externals/angular.js"></script>
-  <script type="text/javascript" src="externals/ui-bootstrap-tpls-1.3.3.js"></script>
-  
-  <!-- Stamp -->
-  <script type="text/javascript" src="../dist/stamp-bundle.js"></script>
-  
+  <head>
+    <meta charset="UTF-8">
+    <title>Stamp Test App</title>
+    <link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="../src/style/stamp.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    
+    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular.min.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/1.3.3/ui-bootstrap-tpls.min.js"></script>
+    
+    <!-- Angular Stamp module -->
+    <script type="text/javascript" src="../dist/angular/bundle.js"></script>
+    
+    <!-- Provide Ng Stamp Configuration -->
+    <script type="text/javascript" src="stampSetup.js"></script>
 
-  <!-- Angular Stamp module -->
-  <script type="text/javascript" src="../dist/angular/bundle.js"></script>
-  <!--<script type="text/javascript" src="../dist/transpiled/angular/mappers.js"></script>
-  <script type="text/javascript" src="../dist/transpiled/angular/stamp.js"></script>-->
-  
-  <!-- Provide Ng Stamp Configuration -->
-  <script type="text/javascript" src="stampSetup.js"></script>
-
-  <!-- Angular App -->
-  <script type="text/javascript" src="app.js"></script>
-</head>
-<body ng-controller="AppCtrl">
-  <h3>Stamp Editor:</h3>
-  <stamp-editor sp-locked="false" sp-read-only="false" ng-model="stampMarkup"></stamp-editor>
-  
-  <h3>Data:</h3>
-  <pre>{{stampMarkup | json}}</pre>
-  <input type="button" class="btn btn-default" ng-click="changeModel()" value="Change Model"/>
-</body>
+    <!-- Angular App -->
+    <script type="text/javascript" src="app.js"></script>
+  </head>
+  <body ng-controller="AppCtrl">
+    <h3>Stamp Editor:</h3>
+    <stamp-editor sp-locked="false" sp-read-only="false" ng-model="stampMarkup"></stamp-editor>
+    
+    <h3>Data:</h3>
+    <pre>{{stampMarkup | json}}</pre>
+  </body>
 </html>
