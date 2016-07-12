@@ -1,8 +1,12 @@
 <div class="component-wrap">
   <div class="component-header">
-    <p class="pull-right"><a ng-if="comIndex !== 0" ng-click="moveUp()">&#9650;</a> <a ng-if="comIndex !== comCount - 1" ng-click="moveDown()">&#9660;</a> <a ng-click="remove()">X</a></p>
+    <p class="pull-right">
+      <a ng-if="comIndex !== 0" ng-click="moveUp()">&#9650;</a>
+      <a ng-if="comIndex !== comCount - 1" ng-click="moveDown()">&#9660;</a>
+      <button type="button" class="close" ng-click="remove()" aria-label="remove"><span aria-hidden="true">&times;</span></button>
+    </p>
   </div>
-  <div ng-if="componentError" class="alert alert-danger">{{componentError}}</div>
+  <div ng-if="componentError" class="alert alert-danger">{{componentError}}<br><br>Component Data:<pre>{{data | json}}</pre></div>
   <div class="component-body">
   </div>
 </div>

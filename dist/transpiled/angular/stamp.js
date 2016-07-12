@@ -1,14 +1,12 @@
 'use strict';
 
-// Ng wrapping example taken from tinymce AngularUI team
-// https://github.com/angular-ui/ui-tinymce/blob/master/src/tinymce.js
 (function () {
 
   function camelToHyphen(str) {
     return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
   }
 
-  var stamp = angular.module('stamp', [/*'stamp.models', 'stamp.mappers', */'stampSetup', 'ui.bootstrap']);
+  var stamp = angular.module('stamp', [/*'stamp.models', */'stamp.mappers', 'stampSetup', 'ui.bootstrap']);
   stamp.value('stampConfig', {});
   stamp.directive('stampEditor', ['$rootScope', '$compile', '$timeout', '$window', 'stampConfig', function ($rootScope, $compile, $timeout, $window, stampConfig) {
     stampConfig = stampConfig || {};
@@ -43,11 +41,11 @@
         angular.extend(options, stampConfig, expression);
 
         // Set all the settings
-        scope.attributes = Object.assign({
+        scope.attributes = angular.extend({
           locked: false, // Stop stack changes
           readOnly: false // Stop content edits
         }, {
-          locked: attrs.locked ? true : false,
+          locked: attrs.locked ? true : false, // TODO: hook up to the html attr naming
           readOnly: attrs.readOnly ? true : false
         }, options);
 
@@ -82,33 +80,30 @@
            */
 
           // All not used
-          scope.$watch(attrs.ngModel, function (newValue, oldValue) {
-            console.log("ngModel value changed via attr watch", oldValue, newValue);
-          });
-          scope.$watch(function () {
-            return JSON.stringify(ngModel.$viewValue);
-          }, function (newValue, oldValue) {
-            console.log("ngModel value changed via view watch" /*, newValue*/);
-          });
+          /*scope.$watch(attrs.ngModel, function( newValue, oldValue ) {
+            console.log( "ngModel value changed via attr watch", oldValue, newValue )
+          })
+          scope.$watch(function() { return JSON.stringify(ngModel.$viewValue) }, function( newValue, oldValue ) {
+            console.log( "ngModel value changed via view watch", newValue )
+          })
           ngModel.$viewChangeListeners.push(function handleNgModelChange() {
-            console.log("ngModel value changed via Listener" /*, ngModel.$viewValue*/);
-          });
-          ngModel.$render = function () {
-            console.log('ng-model render called');
-          };
+            console.log( "ngModel value changed via Listener", ngModel.$viewValue)
+          })
+          ngModel.$render = function() {
+            console.log('ng-model render called')
+          }
           ngModel.$parsers.push(function (inputValue) {
-            console.log('ng-model parser called');
-            var viewValue = ngModel.$viewValue;
-            return viewValue;
-          });
+              console.log('ng-model parser called')
+              var viewValue = ngModel.$viewValue
+              return viewValue
+          })
           ngModel.$formatters.push(function (inputValue) {
-            console.log('ng-model formatter called');
-            var modelValue = ngModel.$modelValue;
-            return modelValue;
-          });
+              console.log('ng-model formatter called')
+              var modelValue = ngModel.$modelValue
+              return modelValue
+          })*/
 
           // I think the 3rd property of watch could be a better comparison here
-          // This is used
           scope.$watch(function () {
             return JSON.stringify(ngModel.$modelValue);
           }, function (newValue, oldValue) {
@@ -125,9 +120,17 @@
           }
 
         scope.addBlock = function (index) {
+          // Default: Add a single column block with one text component
           scope.json.blocks.splice(index !== undefined ? index : scope.json.blocks.length, 0, {
-            attributes: {},
-            columns: []
+            attributes: {
+              layout: 'oneColumn' // Want this as default, TODO: make this an option
+            },
+            columns: [{
+              components: [{
+                type: 'text',
+                data: {}
+              }]
+            }]
           });
         };
       },
@@ -144,11 +147,6 @@
           // Add
           $scope.json.blocks.splice(newIndex, 0, blockRemoved[0]);
         };
-
-        // Maybe:
-        /*this.toJSON = function() {
-          //TODO: call stamp.mappers.json.to
-        }*/
       }]
     };
   }]);
@@ -248,12 +246,13 @@
             combinedClass += 'col-md-12';
           } else if (angular.isObject(scope.layout.columnStyles)) {
 
+            // TODO: Update to be the same as the one in mappers that doesn't rely on angular
             // Loop over each sizing and add as classes
             for (var size in scope.layout.columnStyles) {
               if (scope.layout.columnStyles.hasOwnProperty(size)) {
                 var layoutSize = scope.layout.columnStyles[size];
 
-                if (angular.isArray(layoutSize)) {
+                if (Array.isArray(layoutSize)) {
                   // Is Array
                   var calculatedIndex = columnIndex > layoutSize.length - 1 ? layoutSize.length - 1 : columnIndex;
                   combinedClass += 'col-' + size + '-' + layoutSize[calculatedIndex];
@@ -366,7 +365,7 @@
     };
   }]);
 
-  stamp.directive('stampComponent', ['$compile', 'stampComponents', function ($compile) {
+  stamp.directive('stampComponent', ['$compile', 'stampComponents', function ($compile, stampComponents) {
     return {
       restrict: 'E',
       require: '^stampBlock',

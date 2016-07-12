@@ -18,7 +18,7 @@ angular.module('stampSetup')
     maxColumns: 2,
     columnStyles: {
       md: [3, 9],
-      sm: 12 
+      sm: 12
     }
   })
 
@@ -33,26 +33,66 @@ angular.module('stampSetup')
     }
   })*/
 
-  stampRegister.component('html', {
+  stampRegister.componentControl('licenceRestriction', {
+    icon: 'fa fa-code',
+    label: 'Licence Restrictions',
+    directive: 'stampLicenceControl',
+    preRender: function(componentData) {
+      return componentData
+    },
+    postRender: function(componentHTML) {
+      return componentHTML
+    }
+  })
+
+  stampRegister.blockControl('licenceRestriction', {
+    icon: 'fa fa-code',
+    label: 'Licence Restrictions',
+    directive: 'stampLicenceControl',
+    preRender: function(blockData) {
+      return blockData
+    },
+    postRender: function(blockHTML) {
+      return blockHTML
+    }
+  })
+
+  /*stampRegister.component('html', {
     icon: 'fa fa-code',
     label: 'HTML',
-    directive: 'stampHtmlComponent'
+    directive: 'stampHtmlComponent',
+    toHTML: function(componentJson, block) {
+      return componentJson.data.value
+    }
+  })*/
+
+  stampRegister.component('wysiwyg', {
+    icon: 'fa fa-code',
+    label: 'textAngular',
+    directive: 'stampTextAngularComponent',
+    toHTML: function(componentJson, block) {
+      return componentJson.data.value
+    }
   })
 
-  stampRegister.component('image', {
-    icon: 'fa fa-picture-o',
-    label: 'Image',
-    directive: 'stampImageComponent'
-  })
-
-  stampRegister.component('table', {
-    icon: 'fa fa-table',
-    label: 'Table',
-    directive: 'stampTableComponent'
-  })
+  
 
 }])
-.directive('stampHtmlComponent', [function () {
+.directive('stampTextAngularComponent', [function () {
+  // This needs to be replaced by something more advanced
+  // TODO: float/align, label, alt, frames
+  return {
+    restrict: 'E',
+    template: '<div text-angular ng-model="data.value" ta-toolbar="[[\'h1\',\'h2\',\'h3\',\'p\',\'pre\',\'quote\'],[\'bold\',\'italics\',\'underline\',\'ul\',\'ol\'],[\'justifyLeft\',\'justifyCenter\',\'justifyRight\',\'indent\',\'outdent\',\'html\',\'insertLink\']]"></div>',
+    scope: {
+      data: '='
+    },
+    link: function (scope, element, attrs) {
+      //
+    }
+  }
+}])
+/*.directive('stampHtmlComponent', [function () {
   // This needs to be replaced by something more advanced
   // TODO: float/align, label, alt, frames
   return {
@@ -65,35 +105,4 @@ angular.module('stampSetup')
       //
     }
   }
-}])
-.directive('stampImageComponent', [function () {
-  // This needs to be replaced by something more advanced
-  // TODO: float/align, label, alt, frames
-  return {
-    restrict: 'E',
-    template: '<div>\
-                <img ng-src="{{data.url}}" alt="{{data.alt || \'\'}}" class="img-responsive">\
-              </div>',
-    scope: {
-      data: '='
-    },
-    link: function (scope, element, attrs) {
-      //
-    }
-  }
-}])
-.directive('stampTableComponent', [function () {
-  // This needs to be replaced by something more advanced
-  return {
-    restrict: 'E',
-    template: '<div class="table">\
-                <table><td>TODO: Load table format</td></table>\
-              </div>',
-    scope: {
-      data: '='
-    },
-    link: function (scope, element, attrs) {
-      //
-    }
-  }
-}])
+}])*/

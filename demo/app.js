@@ -1,8 +1,8 @@
-(function() {
-  
-  var app = angular.module('app', ['stamp'])
-  
-  app.controller('AppCtrl', ['$scope', function($scope) {
+(function () {
+
+  var app = angular.module('app', ['stamp', 'textAngular'])
+
+  app.controller('AppCtrl', ['$scope', function ($scope) {
 
     $scope.stampMarkup = {
       blocks: [
@@ -24,11 +24,11 @@
                   type: 'title',
                   data: {
                     value: 'by Nick Wright on June 18, 2016 11:23 AM',
-                    size: 2 
+                    size: 2
                   }
                 },
                 {
-                  type: 'html',
+                  type: 'wysiwyg',
                   data: {
                     value: '[HTML Social share icons]' 
                   }
@@ -58,7 +58,7 @@
                   type: 'title',
                   data: {
                     value: 'Final table chip counts:',
-                    size: 2 
+                    size: 2
                   }
                 },
                 {
@@ -76,7 +76,7 @@
                   }
                 },
                 {
-                  type: 'html',
+                  type: 'wysiwyg',
                   data: {
                     value: "<p class=\"quote\">Have events in Marbella inspired you to start playing poker? <a href=\"#\">Click here to open a PokerStars account.</a></p>" 
                   }
@@ -153,8 +153,7 @@
       ]
     }
 
-
-    /*$scope.stampMarkup = {
+    /* $scope.stampMarkup = {
       blocks: [
         {
           attributes: {
@@ -221,26 +220,49 @@
     }*/
 
     // testing external ngModel changes
-    $scope.changeModel = function() {
+    $scope.changeModel = function () {
       $scope.stampMarkup.blocks.push({
-          attributes: {
-            layout: 'oneColumn'
-          },
-          columns: [
-            {
-              components: [
-                {
-                  type: 'text',
-                  data: {
-                    value: 'NEW COMPONENT'
-                  }
+        attributes: {
+          layout: 'oneColumn'
+        },
+        columns: [
+          {
+            components: [
+              {
+                type: 'text',
+                data: {
+                  value: 'NEW COMPONENT'
                 }
-              ]
-            }
-          ]
-        })
+              }
+            ]
+          }
+        ]
+      })
     }
-    
   }])
-  
+
+  app.directive('iframeDemo', ['StampHTML', function (StampHTML) {
+    return {
+      restrict: 'E',
+      scope: false,
+      link: function (scope, element) {
+        var iframe = document.createElement('iframe')
+        var element0 = element[0]
+        element0.appendChild(iframe)
+
+        // Hacky
+        iframe.style.width = '100%'
+        iframe.style.height = '800px'
+
+        var body = iframe.contentDocument.body
+        var head = iframe.contentDocument.head
+
+        head.innerHTML = '<link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">'
+
+        scope.$watch(function () { return JSON.stringify(scope.stampMarkup) }, function () {
+          body.innerHTML = StampHTML.generate(scope.stampMarkup)
+        })
+      }
+    }
+  }])
 }())

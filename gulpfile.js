@@ -46,7 +46,7 @@ gulp.task('transpile', ['cleanTranspileFolder'], () => {
 
 gulp.task('compile', ['transpile'], () => {
 
-  let jsFileStream = gulp.src('./dist/transpiled/**/*.js')
+  let jsFileStream = gulp.src('./dist/transpiled/angular/*.js')
     //.pipe(gulpif(doMinification, ngmin().on('error', gutil.log))) // Corrects shorthand DI to array syntax
     //.pipe(concat('app.js'))
     //.pipe(gulp.dest('./dist/app/js'))

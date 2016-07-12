@@ -10,7 +10,7 @@
       </span>
       <a ng-if="blockIndex !== 0" ng-click="moveUp()">&#9650;</a>
       <a ng-if="blockIndex !== blockCount - 1" ng-click="moveDown()">&#9660;</a>
-      <a ng-click="remove()">X</a>
+      <button type="button" class="close" ng-click="remove()" aria-label="remove"><span aria-hidden="true">&times;</span></button>
     </span>
 </div>
 <div ng-if="layout.maxColumns && layout.maxColumns < data.columns.length" class="alert alert-danger">This layout has a column limit of {{layout.maxColumns}}, the column count is {{data.columns.length}}, switch to a {{data.columns.length}} column layout</div>
@@ -20,14 +20,14 @@
       <stamp-component data="component" col-index="$parent.$index" com-index="$index" com-count="column.components.length"></stamp-component>
     </div>
     <div ng-if="!parent.locked && !parent.readOnly">
-      <input ng-if="column.components.length == 0" class="btn btn-warning btn-lg center-block" type="button" ng-click="removeColumn($index)" value="Remove Column"></input>
-      <input class="btn btn-default btn-lg center-block" type="button" ng-click="addComponent($parent.$index)" value="+ Component"></input>
+      <input ng-if="column.components.length == 0" class="btn btn-warning btn-lg btn-block" type="button" ng-click="removeColumn($index)" value="Remove Column"></input>
+      <input class="btn btn-default btn-lg btn-block" type="button" ng-click="addComponent($parent.$index)" value="+ Component"></input>
     </div>
   </div>
   <!-- enable this instead of the below option when you've added the ability to add no middle column if 3 are missing on a 3 col layout <div ng-if="emptyColumnCount().length > 0" ng-class="getColumnClasses($index, true)" ng-repeat="emptyColumn in emptyColumnCount() track by $index">
-    <div ng-if="!parent.locked && !parent.readOnly"><input class="btn btn-default btn-lg center-block" type="button" ng-click="addColumn($index)" value="+ Column"></input></div>
+    <div ng-if="!parent.locked && !parent.readOnly"><input class="btn btn-default btn-lg btn-block" type="button" ng-click="addColumn($index)" value="+ Column"></input></div>
   </div>-->
   <div ng-if="!parent.locked && !parent.readOnly && (emptyColumnCount().length > 0  && data.attributes.layout != 'fluid' || data.attributes.layout == 'fluid' && data.columns.length == 0)" ng-class="getColumnClasses(0, true)">
-    <input class="btn btn-default btn-lg center-block" type="button" ng-click="addColumn()" value="+ Column"></input>
+    <input class="btn-block btn btn-default btn-lg" type="button" ng-click="addColumn()" value="+ Column"></input>
   </div>
 </div>

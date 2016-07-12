@@ -22,29 +22,226 @@ module.run(["$templateCache", function($templateCache) {
 
 ;'use strict';
 
-// https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Object/assign
-if (typeof Object.assign != 'function') {
-  Object.assign = function (target) {
-    'use strict';
+(function (exports) {
 
-    if (target == null) {
-      throw new TypeError('Cannot convert undefined or null to object');
+  // This is extracted from the angular module pattern so we can require it externally easier (server side html -> json)
+  exports.htmlMapper = function (mapperResources, jsonData, envVariables) {
+
+    var HTMLString = '';
+
+    // Passed to render functions to render for different scenarios
+    // Can be missing if you don't want to render multiple versions by using conditions inside components or layouts
+    envVariables = envVariables || {};
+
+    // Collection of functions that handle the breakdown of the json parsing
+    // This is the top level function -> calls pre hooks, parseBlock, post hooks
+    function runBlockCompilation(blockJson, blockIndex) {
+      // Pre HTML render hook
+      Object.keys(mapperResources.stampBlockControls).forEach(function (key, index) {
+        var control = mapperResources.stampBlockControls[key];
+        if (control.preRender !== undefined) {
+          blockJson = control.preRender.call(envVariables, blockJson, blockIndex);
+        }
+      });
+      // Render HTML
+      var blockHTML = parseBlock(blockJson, blockIndex);
+      // Post HTML render hook
+      Object.keys(mapperResources.stampBlockControls).forEach(function (key, index) {
+        var control = mapperResources.stampBlockControls[key];
+        if (control.postRender !== undefined) {
+          blockHTML = control.postRender.call(envVariables, blockHTML, blockIndex);
+        }
+      });
+      return blockHTML;
     }
 
-    target = Object(target);
-    for (var index = 1; index < arguments.length; index++) {
-      var source = arguments[index];
-      if (source != null) {
-        for (var key in source) {
-          if (Object.prototype.hasOwnProperty.call(source, key)) {
-            target[key] = source[key];
+    // Calls parseColumn
+    function parseBlock(blockJson, blockIndex) {
+      // If attr exists, use it, else use fluid
+      var layoutName = blockJson.attributes && blockJson.attributes.layout ? blockJson.attributes.layout : 'fluid';
+      var blockLayout = mapperResources.stampLayouts[layoutName];
+      var blockHTMLString = '';
+
+      if (!blockLayout) {
+        if (layoutName === 'fluid') {
+          console.log('Warning! Missing layout config and fallback fluid layout. Exiting.');
+          return blockHTMLString;
+        }
+
+        console.log('Warning! Missing layout config, reverting to fluid');
+        // Hope this does exist, or we have bigger problems
+        layoutName = 'fluid';
+        blockLayout = mapperResources.stampLayouts.fluid;
+      }
+
+      // No rows for fluid layouts
+      if (layoutName !== 'fluid') {
+        blockHTMLString += '<div class="row">';
+      } else {
+        blockHTMLString += '<div>';
+      }
+
+      // Add all columns
+      blockJson.columns.forEach(function (column, index) {
+        // Will never fire for fluid layouts
+        if (blockLayout.maxColumns !== undefined && index + 1 > blockLayout.maxColumns) {
+          console.log('Warning! Data exceeds maxColumns for this layout, Omitting extra columns.');
+          return;
+        }
+        // Don't pass index on fluid layouts so we can omit the col classes
+        var newColumn = parseColumn(column, layoutName === 'fluid' ? false : index, blockLayout, blockIndex);
+        if (newColumn) {
+          blockHTMLString += newColumn;
+        }
+      });
+
+      blockHTMLString += '</div>';
+
+      return blockHTMLString;
+    }
+
+    // Calls runComponentCompilation
+    function parseColumn(columnJson, columnIndex, blockLayout) {
+      var columnHTML = '<div class="';
+      // No col classes on fluid
+      if (columnIndex !== false) {
+        var columnClasses = _getColumnClasses(columnIndex, blockLayout);
+        columnHTML += columnClasses;
+      }
+      columnHTML += '">';
+
+      // Add all components
+      columnJson.components.forEach(function (component, index) {
+        var newComponent = runComponentCompilation(component, index, blockLayout);
+        if (newComponent) {
+          // TODO: add to HTML
+          columnHTML += newComponent;
+        }
+      });
+
+      columnHTML += '</div>';
+      return columnHTML;
+    }
+
+    // Run pre hooks, parseComponent and post hooks
+    function runComponentCompilation(componentJson, componentIndex, blockLayout) {
+      var componentHTML = '';
+
+      // Pre HTML render hook
+      Object.keys(mapperResources.stampComponentControls).forEach(function (key, index) {
+        var control = mapperResources.stampComponentControls[key];
+        if (control.preRender !== undefined) {
+          componentJson = control.preRender.call(envVariables, componentJson, componentIndex);
+        }
+      });
+      // Render HTML
+      componentHTML = parseComponent(componentJson, componentIndex, blockLayout);
+      // Post HTML render hook
+      Object.keys(mapperResources.stampComponentControls).forEach(function (key, index) {
+        var control = mapperResources.stampComponentControls[key];
+        if (control.postRender !== undefined) {
+          componentHTML = control.postRender.call(envVariables, componentHTML, componentIndex);
+        }
+      });
+      return componentHTML;
+    }
+
+    function parseComponent(componentJson, columnIndex, blockLayout) {
+
+      // check this is the correct reference:
+      var componentObject = mapperResources.stampComponents[componentJson.type];
+
+      if (!componentObject) {
+        console.log('Warning! Missing component: ' + componentJson.type);
+        return '';
+      }
+
+      if (!componentObject.toHTML) {
+        console.log('Warning! Component is missing a toHTML function: ' + componentJson.type);
+        return '';
+      }
+
+      return componentObject.toHTML.call(envVariables, componentJson, blockLayout);
+    }
+
+    // TODO: Improve:
+    //      This appears in the stamp core too, extracting it to a module in this file would be a good idea
+    //      that allows us to still export it but also require it within angular
+    function _getColumnClasses(columnIndex, blockLayout) {
+
+      var combinedClass = '';
+
+      if (blockLayout.columnStyles === undefined) {
+        combinedClass += 'col-md-12';
+      } else if (typeof blockLayout.columnStyles === 'string') {
+        // single value for all columns
+        combinedClass += 'col-' + blockLayout.columnStyles;
+      } else {
+        // Loop over each sizing and add as classes
+        for (var size in blockLayout.columnStyles) {
+          if (blockLayout.columnStyles.hasOwnProperty(size)) {
+            var layoutSize = blockLayout.columnStyles[size];
+
+            if (Array.isArray(layoutSize)) {
+              // Is Array
+              var calculatedIndex = columnIndex > layoutSize.length - 1 ? layoutSize.length - 1 : columnIndex;
+              combinedClass += 'col-' + size + '-' + layoutSize[calculatedIndex];
+            } else {
+              // Is String
+              combinedClass += 'col-' + size + '-' + layoutSize;
+            }
+            // Pad between classes
+            combinedClass += ' ';
           }
         }
       }
+
+      return combinedClass;
     }
-    return target;
+
+    // End of function definitions, start of function logic:
+
+    // If passed an empty data set
+    if (!jsonData || !jsonData.blocks) return HTMLString;
+
+    // Parse all blocks
+    jsonData.blocks.forEach(function (block, index) {
+      HTMLString += runBlockCompilation(block, index);
+    });
+
+    return HTMLString;
   };
-}
+
+  // Safety wrap for when doing a server include
+  if (angular) {
+    var stampMappers = angular.module('stamp.mappers', []);
+    stampMappers.factory('StampHTML', ['stampLayouts', 'stampComponents', 'stampComponentControls', 'stampBlockControls', function (stampLayouts, stampComponents, stampComponentControls, stampBlockControls) {
+
+      // This is so we can pass the same structure server side without needing to recreate DI
+      var mapperResources = {
+        stampLayouts: stampLayouts,
+        stampBlockControls: stampBlockControls,
+        stampComponents: stampComponents,
+        stampComponentControls: stampComponentControls
+      };
+
+      function outputHTML(json) {
+        try {
+          return exports.htmlMapper(mapperResources, json);
+        } catch (error) {
+          console.log('Warning! Failed to export Stamp JSON to HTML', error);
+        }
+      }
+
+      return {
+        generate: function generate(json) {
+          console.log('Called stamp.mappers.StampHTML.generate [JSON -> HTML]');
+          return outputHTML(json);
+        }
+      };
+    }]);
+  }
+})(typeof exports === 'undefined' ? window['_stampMappers'] = {} : exports);
 ;(function(module) {
 try { module = angular.module("stamp"); }
 catch(err) { module = angular.module("stamp", []); }
@@ -62,7 +259,7 @@ module.run(["$templateCache", function($templateCache) {
     "      </span>\n" +
     "      <a data-ng-if=\"blockIndex !== 0\" data-ng-click=\"moveUp()\">&#9650;</a>\n" +
     "      <a data-ng-if=\"blockIndex !== blockCount - 1\" data-ng-click=\"moveDown()\">&#9660;</a>\n" +
-    "      <a data-ng-click=\"remove()\">X</a>\n" +
+    "      <button type=\"button\" class=\"close\" aria-label=\"remove\" data-ng-click=\"remove()\"><span aria-hidden=\"true\">&times;</span></button>\n" +
     "    </span>\n" +
     "</div>\n" +
     "<div class=\"alert alert-danger\" data-ng-if=\"layout.maxColumns && layout.maxColumns < data.columns.length\">This layout has a column limit of {{layout.maxColumns}}, the column count is {{data.columns.length}}, switch to a {{data.columns.length}} column layout</div>\n" +
@@ -72,15 +269,15 @@ module.run(["$templateCache", function($templateCache) {
     "      <stamp-component data=\"component\" col-index=\"$parent.$index\" com-index=\"$index\" com-count=\"column.components.length\"></stamp-component>\n" +
     "    </div>\n" +
     "    <div data-ng-if=\"!parent.locked && !parent.readOnly\">\n" +
-    "      <input class=\"btn btn-warning btn-lg center-block\" type=\"button\" value=\"Remove Column\" data-ng-if=\"column.components.length == 0\" data-ng-click=\"removeColumn($index)\">\n" +
-    "      <input class=\"btn btn-default btn-lg center-block\" type=\"button\" value=\"+ Component\" data-ng-click=\"addComponent($parent.$index)\">\n" +
+    "      <input class=\"btn btn-warning btn-lg btn-block\" type=\"button\" value=\"Remove Column\" data-ng-if=\"column.components.length == 0\" data-ng-click=\"removeColumn($index)\">\n" +
+    "      <input class=\"btn btn-default btn-lg btn-block\" type=\"button\" value=\"+ Component\" data-ng-click=\"addComponent($parent.$index)\">\n" +
     "    </div>\n" +
     "  </div>\n" +
     "  <!-- enable this instead of the below option when you've added the ability to add no middle column if 3 are missing on a 3 col layout <div ng-if=\"emptyColumnCount().length > 0\" ng-class=\"getColumnClasses($index, true)\" ng-repeat=\"emptyColumn in emptyColumnCount() track by $index\">\n" +
-    "    <div ng-if=\"!parent.locked && !parent.readOnly\"><input class=\"btn btn-default btn-lg center-block\" type=\"button\" ng-click=\"addColumn($index)\" value=\"+ Column\"></input></div>\n" +
+    "    <div ng-if=\"!parent.locked && !parent.readOnly\"><input class=\"btn btn-default btn-lg btn-block\" type=\"button\" ng-click=\"addColumn($index)\" value=\"+ Column\"></input></div>\n" +
     "  </div>-->\n" +
     "  <div data-ng-if=\"!parent.locked && !parent.readOnly && (emptyColumnCount().length > 0  && data.attributes.layout != 'fluid' || data.attributes.layout == 'fluid' && data.columns.length == 0)\" data-ng-class=\"getColumnClasses(0, true)\">\n" +
-    "    <input class=\"btn btn-default btn-lg center-block\" type=\"button\" value=\"+ Column\" data-ng-click=\"addColumn()\">\n" +
+    "    <input class=\"btn-block btn btn-default btn-lg\" type=\"button\" value=\"+ Column\" data-ng-click=\"addColumn()\">\n" +
     "  </div>\n" +
     "</div>");
 }]);
@@ -88,150 +285,13 @@ module.run(["$templateCache", function($templateCache) {
 
 ;'use strict';
 
-(function () {
-
-  var stampMappers = angular.module('stamp.mappers', ['stamp.models']);
-  stampMappers.factory('StampJSON', ['StampModels', function (StampModels) {
-
-    // Collection of functions that handle the breakdown of the json parsing
-    var jsonParse = {
-      parse: function parse(json) {
-        // Call stack parse
-        return jsonParse.stack(json);
-      },
-      stack: function stack(json) {
-        var stack = new StampModels.Stack();
-
-        // If passed an empty data set
-        if (!json || !json.blocks) return stack;
-
-        // Add all blocks
-        json.blocks.forEach(function (block) {
-          var newBlock = jsonParse.block(block);
-          if (newBlock) stack.add(newBlock);
-        });
-
-        return stack;
-      },
-      block: function block(blockJson) {
-        var block = new StampModels.Block(blockJson);
-
-        // If missing components
-        if (!blockJson.components) return block;
-
-        // Add all components
-        blockJson.components.forEach(function (component) {
-          var newComponent = jsonParse.component(component);
-          if (newComponent) block.add(newComponent);
-        });
-
-        return block;
-      },
-      component: function component(componentJson) {
-        var newComponent = new StampModels.Component(componentJson);
-        return newComponent;
-      }
-    };
-
-    // Collection of functions that handle the breakdown of the internal stack classes to json
-    /*let stackParse = {
-      parse: function (instance) {
-        // Call stack parse
-        return stackParse.stack(instance)
-      },
-      stack: function (instance) {
-        let stack = {
-          blocks: []
-        }
-          // If passed an empty data set
-        if(!instance || !instance.blocks) return stack
-          // Add all blocks
-        instance.blocks.forEach(function(block) {
-          let blockJson = jsonParse.block(block)
-          if(blockJson) stack.blocks.push(blockJson)
-        })
-          return stack
-      },
-      block: function (blockInstance) {
-        let block = {
-          components: []
-        }
-          // If missing components
-        if(!blockInstance.components) return block
-        
-        // Add all components
-        blockInstance.components.forEach(function(component) {
-          let componentJson = stackParse.component(component)
-          if(componentJson) block.components.push(componentJson)
-        })
-          return block
-      },
-      component: function (componentInstance) {
-        let componentJson = {
-          content: componentInstance.data || '',
-          type: componentInstance.type || ''
-        }
-        return componentJson
-      }
-    }*/
-
-    /*function exportFunc (stack) {
-      try {
-        return stackParse.parse(stack)	
-      } catch(error) {
-        console.log('Warning! Failed to export Stamp structure', error)
-        return undefined
-      }
-    }*/
-
-    function importFunc(json) {
-      try {
-        return jsonParse.parse(json);
-      } catch (error) {
-        console.log('Warning! Failed to import Stamp json', error);
-        return undefined;
-      }
-    }
-
-    return {
-      /*to: function(instance) {
-        console.log('Called stamp.mappers.json.to [Stack -> JSON]')
-        return exportFunc(instance)
-      },*/
-      from: function from(json) {
-        console.log('Called stamp.mappers.json.from [JSON -> Stack]');
-        return importFunc(json);
-      }
-    };
-  }]);
-})();
-;(function(module) {
-try { module = angular.module("stamp"); }
-catch(err) { module = angular.module("stamp", []); }
-module.run(["$templateCache", function($templateCache) {
-  $templateCache.put("src/angular/templates/component.html",
-    "<div class=\"component-wrap\">\n" +
-    "  <div class=\"component-header\">\n" +
-    "    <p class=\"pull-right\"><a data-ng-if=\"comIndex !== 0\" data-ng-click=\"moveUp()\">&#9650;</a> <a data-ng-if=\"comIndex !== comCount - 1\" data-ng-click=\"moveDown()\">&#9660;</a> <a data-ng-click=\"remove()\">X</a></p>\n" +
-    "  </div>\n" +
-    "  <div class=\"alert alert-danger\" data-ng-if=\"componentError\">{{componentError}}</div>\n" +
-    "  <div class=\"component-body\">\n" +
-    "  </div>\n" +
-    "</div>");
-}]);
-})();
-
-;'use strict';
-
-// Ng wrapping example taken from tinymce AngularUI team
-// https://github.com/angular-ui/ui-tinymce/blob/master/src/tinymce.js
 (function () {
 
   function camelToHyphen(str) {
     return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
   }
 
-  var stamp = angular.module('stamp', [/*'stamp.models', 'stamp.mappers', */'stampSetup', 'ui.bootstrap']);
+  var stamp = angular.module('stamp', [/*'stamp.models', */'stamp.mappers', 'stampSetup', 'ui.bootstrap']);
   stamp.value('stampConfig', {});
   stamp.directive('stampEditor', ['$rootScope', '$compile', '$timeout', '$window', 'stampConfig', function ($rootScope, $compile, $timeout, $window, stampConfig) {
     stampConfig = stampConfig || {};
@@ -266,11 +326,11 @@ module.run(["$templateCache", function($templateCache) {
         angular.extend(options, stampConfig, expression);
 
         // Set all the settings
-        scope.attributes = Object.assign({
+        scope.attributes = angular.extend({
           locked: false, // Stop stack changes
           readOnly: false // Stop content edits
         }, {
-          locked: attrs.locked ? true : false,
+          locked: attrs.locked ? true : false, // TODO: hook up to the html attr naming
           readOnly: attrs.readOnly ? true : false
         }, options);
 
@@ -305,33 +365,30 @@ module.run(["$templateCache", function($templateCache) {
            */
 
           // All not used
-          scope.$watch(attrs.ngModel, function (newValue, oldValue) {
-            console.log("ngModel value changed via attr watch", oldValue, newValue);
-          });
-          scope.$watch(function () {
-            return JSON.stringify(ngModel.$viewValue);
-          }, function (newValue, oldValue) {
-            console.log("ngModel value changed via view watch" /*, newValue*/);
-          });
+          /*scope.$watch(attrs.ngModel, function( newValue, oldValue ) {
+            console.log( "ngModel value changed via attr watch", oldValue, newValue )
+          })
+          scope.$watch(function() { return JSON.stringify(ngModel.$viewValue) }, function( newValue, oldValue ) {
+            console.log( "ngModel value changed via view watch", newValue )
+          })
           ngModel.$viewChangeListeners.push(function handleNgModelChange() {
-            console.log("ngModel value changed via Listener" /*, ngModel.$viewValue*/);
-          });
-          ngModel.$render = function () {
-            console.log('ng-model render called');
-          };
+            console.log( "ngModel value changed via Listener", ngModel.$viewValue)
+          })
+          ngModel.$render = function() {
+            console.log('ng-model render called')
+          }
           ngModel.$parsers.push(function (inputValue) {
-            console.log('ng-model parser called');
-            var viewValue = ngModel.$viewValue;
-            return viewValue;
-          });
+              console.log('ng-model parser called')
+              var viewValue = ngModel.$viewValue
+              return viewValue
+          })
           ngModel.$formatters.push(function (inputValue) {
-            console.log('ng-model formatter called');
-            var modelValue = ngModel.$modelValue;
-            return modelValue;
-          });
+              console.log('ng-model formatter called')
+              var modelValue = ngModel.$modelValue
+              return modelValue
+          })*/
 
           // I think the 3rd property of watch could be a better comparison here
-          // This is used
           scope.$watch(function () {
             return JSON.stringify(ngModel.$modelValue);
           }, function (newValue, oldValue) {
@@ -348,9 +405,17 @@ module.run(["$templateCache", function($templateCache) {
           }
 
         scope.addBlock = function (index) {
+          // Default: Add a single column block with one text component
           scope.json.blocks.splice(index !== undefined ? index : scope.json.blocks.length, 0, {
-            attributes: {},
-            columns: []
+            attributes: {
+              layout: 'oneColumn' // Want this as default, TODO: make this an option
+            },
+            columns: [{
+              components: [{
+                type: 'text',
+                data: {}
+              }]
+            }]
           });
         };
       },
@@ -367,11 +432,6 @@ module.run(["$templateCache", function($templateCache) {
           // Add
           $scope.json.blocks.splice(newIndex, 0, blockRemoved[0]);
         };
-
-        // Maybe:
-        /*this.toJSON = function() {
-          //TODO: call stamp.mappers.json.to
-        }*/
       }]
     };
   }]);
@@ -471,12 +531,13 @@ module.run(["$templateCache", function($templateCache) {
             combinedClass += 'col-md-12';
           } else if (angular.isObject(scope.layout.columnStyles)) {
 
+            // TODO: Update to be the same as the one in mappers that doesn't rely on angular
             // Loop over each sizing and add as classes
             for (var size in scope.layout.columnStyles) {
               if (scope.layout.columnStyles.hasOwnProperty(size)) {
                 var layoutSize = scope.layout.columnStyles[size];
 
-                if (angular.isArray(layoutSize)) {
+                if (Array.isArray(layoutSize)) {
                   // Is Array
                   var calculatedIndex = columnIndex > layoutSize.length - 1 ? layoutSize.length - 1 : columnIndex;
                   combinedClass += 'col-' + size + '-' + layoutSize[calculatedIndex];
@@ -589,7 +650,7 @@ module.run(["$templateCache", function($templateCache) {
     };
   }]);
 
-  stamp.directive('stampComponent', ['$compile', 'stampComponents', function ($compile) {
+  stamp.directive('stampComponent', ['$compile', 'stampComponents', function ($compile, stampComponents) {
     return {
       restrict: 'E',
       require: '^stampBlock',
@@ -652,50 +713,60 @@ module.run(["$templateCache", function($templateCache) {
 try { module = angular.module("stamp"); }
 catch(err) { module = angular.module("stamp", []); }
 module.run(["$templateCache", function($templateCache) {
-  $templateCache.put("src/angular/templates/editor.html",
-    "<div class=\"stamp-stack-container\">\n" +
-    " <!-- {{json | json}} -->\n" +
-    "  <div class=\"stamp-block-wrapper block-{{$index}} row\" data-ng-repeat=\"block in json.blocks\">\n" +
-    "    <stamp-block data=\"block\" block-index=\"$index\" block-count=\"json.blocks.length\" class=\"clearfix\"></stamp-block>\n" +
+  $templateCache.put("src/angular/templates/component.html",
+    "<div class=\"component-wrap\">\n" +
+    "  <div class=\"component-header\">\n" +
+    "    <p class=\"pull-right\">\n" +
+    "      <a data-ng-if=\"comIndex !== 0\" data-ng-click=\"moveUp()\">&#9650;</a>\n" +
+    "      <a data-ng-if=\"comIndex !== comCount - 1\" data-ng-click=\"moveDown()\">&#9660;</a>\n" +
+    "      <button type=\"button\" class=\"close\" aria-label=\"remove\" data-ng-click=\"remove()\"><span aria-hidden=\"true\">&times;</span></button>\n" +
+    "    </p>\n" +
     "  </div>\n" +
-    "  <div class=\"no-config\" data-ng-if=\"!json.blocks || json.blocks.length == 0\">No Blocks</div>\n" +
-    "  <div data-ng-if=\"!locked && !readOnly\"><input class=\"btn btn-default btn-lg center-block\" type=\"button\" value=\"+ Block\" data-ng-click=\"addBlock()\"></div>\n" +
+    "  <div class=\"alert alert-danger\" data-ng-if=\"componentError\">{{componentError}}<br><br>Component Data:<pre>{{data | json}}</pre></div>\n" +
+    "  <div class=\"component-body\">\n" +
+    "  </div>\n" +
     "</div>");
 }]);
 })();
 
 ;'use strict';
 
-// Taken from textAngular Setup
+// some ideas taken from textAngular Setup
 
-var stampComponents = {};
-var stampLayouts = {};
-var stampTemplates = {};
-
+var stampAngularModule = angular.module('stampSetup', []);
+var stampSetupData = {};
+var stampRegisterFunctions = {};
 // Should it be an object mapping types of files/content?
 // e.g {'image': [handler, handler, ...]}
 //var stampDropHandlers = {}
 
-function registerComponent(name, component) {
-  if (!name || name === '' || stampComponents.hasOwnProperty(name)) throw 'Stamp Error: A unique name is required for a Component definition';
-  stampComponents[name] = component;
-}
-function registerLayout(name, layout) {
-  if (!name || name === '' || stampLayouts.hasOwnProperty(name)) throw 'Stamp Error: A unique name is required for a Layout definition';
-  stampLayouts[name] = layout;
-}
-function registerTemplate(name, template) {
-  // TODO
-  throw new Error('NotImplementedException');
-  if (!name || name === '' || stampTemplates.hasOwnProperty(name)) throw 'Stamp Error: A unique name is required for a Template definition';
-  stampTemplates[name] = template;
-}
-angular.module('stampSetup', []).constant('stampRegister', {
-  component: registerComponent,
-  layout: registerLayout,
-  template: registerTemplate
-}).value('stampComponents', stampComponents).value('stampLayouts', stampLayouts).value('stampTemplates', stampTemplates).value('stampOptions', {
-  /*componentGroupings: [
+// Register an object for each type and a register function
+['Components', 'Layouts', 'ComponentControls', 'BlockControls'].forEach(function (itemToRegister) {
+  // Each object gets storage space
+  stampSetupData[itemToRegister] = {};
+  // Also gets a registration function too
+  stampRegisterFunctions[itemToRegister] = function (itemName) {
+    return function (name, item) {
+      if (!name || name === '' || stampSetupData[itemName].hasOwnProperty(name)) {
+        throw new Error('Stamp Error: A unique name is required for a ' + itemName + ' definition');
+      }
+      stampSetupData[itemName][name] = item;
+    };
+  }(itemToRegister);
+  // And an Angular.value for accessing later within Stamp
+  stampAngularModule.value('stamp' + itemToRegister, stampSetupData[itemToRegister]);
+});
+
+stampAngularModule.constant('stampRegister', {
+  component: stampRegisterFunctions.Components,
+  componentControl: stampRegisterFunctions.ComponentControls,
+  layout: stampRegisterFunctions.Layouts,
+  blockControl: stampRegisterFunctions.BlockControls
+  // template: registerTemplate
+}).value('stampOptions', {
+  /* colClass: 'col',
+  rowClass: 'row' // TODO*/
+  /* componentGroupings: [
   	['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'pre', 'quote'],
   	['redo', 'undo']
   ]*/
@@ -709,15 +780,14 @@ angular.module('stampSetup', []).constant('stampRegister', {
                                }
                                }*/
 }).run(['stampRegister', '$window', 'stampTranslations', 'stampOptions', function (stampRegister, $window, stampTranslations, stampOptions) {
-
   stampRegister.layout('fluid', {
-    //icon: 'tint',
+    // icon: 'tint',
     label: 'Fluid', // TODO: stampTranslations.layouts.fluid,
     maxColumns: undefined
   });
 
   stampRegister.layout('oneColumn', {
-    //icon: 'square',
+    // icon: 'square',
     label: 'One Column', // TODO: stampTranslations.layouts.oneColumn,
     maxColumns: 1,
     columnStyles: {
@@ -726,7 +796,7 @@ angular.module('stampSetup', []).constant('stampRegister', {
   });
 
   stampRegister.layout('twoColumn', {
-    //icon: 'pause',
+    // icon: 'pause',
     label: 'Two Even Columns', // TODO: stampTranslations.layouts.,
     maxColumns: 2,
     columnStyles: {
@@ -736,7 +806,7 @@ angular.module('stampSetup', []).constant('stampRegister', {
   });
 
   stampRegister.layout('threeColumn', {
-    //icon: 'todo',
+    // icon: 'todo',
     label: 'Three Columns', // TODO: stampTranslations.layouts.,
     maxColumns: 3,
     columnStyles: {
@@ -748,27 +818,53 @@ angular.module('stampSetup', []).constant('stampRegister', {
   stampRegister.component('text', {
     directive: 'stampTextComponent',
     label: 'Text',
-    icon: 'fa fa-paragraph'
+    icon: 'fa fa-paragraph',
+    toHTML: function toHTML(componentJson, block) {
+      return '<p>' + componentJson.data.value + '</p>';
+    }
   });
 
   stampRegister.component('title', {
     directive: 'stampHeadingComponent',
     label: 'Title',
-    icon: 'fa fa-header'
+    icon: 'fa fa-header',
+    toHTML: function toHTML(componentJson, block) {
+      return '<h' + componentJson.data.size + '>' + componentJson.data.value + '</h' + componentJson.data.size + '>';
+    }
   });
-}]).directive('stampTextComponent', ['$compile', function ($compile) {
+
+  stampRegister.component('image', {
+    icon: 'fa fa-picture-o',
+    label: 'Image',
+    directive: 'stampImageComponent',
+    toHTML: function toHTML(componentJson, block) {
+      // TODO: More attributes to map
+      var className = 'img img-responsive';
+      return '<img src="' + componentJson.data.url + '" class="' + className + '" alt="' + (componentJson.data.alt || '') + '">';
+    }
+  });
+
+  stampRegister.component('table', {
+    icon: 'fa fa-table',
+    label: 'Table',
+    directive: 'stampTableComponent',
+    toHTML: function toHTML(componentJson, block) {
+      return '<table><td>TODO</td></table>';
+    }
+  });
+}]).directive('stampTextComponent', [function () {
   return {
     restrict: 'E',
-    //require: 'ngModel',
+    // require: 'ngModel',
     template: '<textarea stamp-auto-height placeholder="Enter Text.." class="form-control" ng-model="data.value"></textarea>',
     scope: {
       data: '='
     }
   };
-}]).directive('stampHeadingComponent', ['$compile', function ($compile) {
+}]).directive('stampHeadingComponent', [function () {
   return {
     restrict: 'E',
-    //require: 'ngModel',
+    // require: 'ngModel',
     template: '<div class="input-group size-h{{data.size || 1}}">\
                 <input type="text" placeholder="Enter Heading Text.." class="form-control" ng-model="data.value">\
                 <div class="input-group-btn" uib-dropdown>\
@@ -778,7 +874,7 @@ angular.module('stampSetup', []).constant('stampRegister', {
                   </ul>\
                 </div>\
               </div>',
-    //template: '<input type="text" placeholder="Enter Heading Text.." class="form-control size-h{{data.size || 1}}" ng-model="data.value">',
+    // template: '<input type="text" placeholder="Enter Heading Text.." class="form-control size-h{{data.size || 1}}" ng-model="data.value">',
     scope: {
       data: '='
     },
@@ -789,4 +885,92 @@ angular.module('stampSetup', []).constant('stampRegister', {
       }
     }
   };
+}]).directive('stampImageComponent', [function () {
+  // This needs to be replaced by something more advanced
+  // TODO: float/align, label, alt, frames
+  return {
+    restrict: 'E',
+    template: '<div ng-class="{\'edit-mode\':editing}" style="position: relative;">\
+                <div ng-show="editing" class="edit-overlay">\
+                  <button class="btn pull-right" ng-click="toggleEdit()">Close</button>\
+                  <h4>Alignment</h4>\
+                  <div class="btn-group">\
+                    <label class="btn btn-default" ng-model="data.alignment" uib-btn-radio="\'left\'">Left</label>\
+                    <label class="btn btn-default" ng-model="data.alignment" uib-btn-radio="\'center\'">Center</label>\
+                    <label class="btn btn-default" ng-model="data.alignment" uib-btn-radio="\'right\'">Right</label>\
+                  </div>\
+                  <button type="button" class="btn btn-primary" ng-click="data.alignment=null">Clear</button>\
+                  <h4>Styles</h4>\
+                  <input class="form-control" type="text" ng-model="data.style">\
+                  <h4>Caption</h4>\
+                  <input class="form-control" type="text" ng-model="data.figureCaption">\
+                </div>\
+                <button class="btn btn-transparent pull-right" style="position:absolute;right:8px;" ng-hide="editing" ng-click="toggleEdit()">Edit</button>\
+                <figure ng-class="getClasses()" style="{{data.style || \'\'}}">\
+                  <img ng-src="{{data.url}}" alt="{{data.alt || \'\'}}" class="img-responsive figure-img">\
+                  <figcaption ng-if="data.figureCaption" class="figure-caption text-center">{{data.figureCaption}}</figcaption>\
+                </figure>\
+              </div>',
+    scope: {
+      data: '='
+    },
+    link: function link(scope, element, attrs) {
+      scope.editing = false;
+      scope.clearAll = function () {
+        scope.data.width = null;
+        scope.data.alignment = null;
+      };
+      scope.toggleEdit = function () {
+        scope.editing = !scope.editing;
+      };
+      scope.getClasses = function () {
+        var className = 'figure ';
+
+        switch (scope.data.alignment) {
+          case 'left':
+            className += 'pull-left ';
+            break;
+          case 'center':
+            className += 'center-block ';
+            break;
+          case 'right':
+            className += 'pull-right ';
+            break;
+          default:
+            break;
+        }
+
+        return className;
+      };
+    }
+  };
+}]).directive('stampTableComponent', [function () {
+  // This needs to be replaced by something more advanced
+  return {
+    restrict: 'E',
+    template: '<div class="table">\
+                <table><td>TODO: Load table format</td></table>\
+              </div>',
+    scope: {
+      data: '='
+    },
+    link: function link(scope, element, attrs) {
+      //
+    }
+  };
 }]);
+;(function(module) {
+try { module = angular.module("stamp"); }
+catch(err) { module = angular.module("stamp", []); }
+module.run(["$templateCache", function($templateCache) {
+  $templateCache.put("src/angular/templates/editor.html",
+    "<div class=\"stamp-stack-container\">\n" +
+    " <!-- {{json | json}} -->\n" +
+    "  <div class=\"stamp-block-wrapper block-{{$index}} row\" data-ng-repeat=\"block in json.blocks\">\n" +
+    "    <stamp-block data=\"block\" block-index=\"$index\" block-count=\"json.blocks.length\" class=\"clearfix\"></stamp-block>\n" +
+    "  </div>\n" +
+    "  <div class=\"no-config\" data-ng-if=\"!json.blocks || json.blocks.length == 0\">Start by adding a block!</div>\n" +
+    "  <div data-ng-if=\"!locked && !readOnly\"><input class=\"btn btn-default btn-lg btn-block\" type=\"button\" value=\"+ Block\" data-ng-click=\"addBlock()\"></div>\n" +
+    "</div>");
+}]);
+})();

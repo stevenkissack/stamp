@@ -33,9 +33,6 @@ stamp-editor stamp-component {
 stamp-editor .form-control {
 	border-color: #FEFEFE;
 }
-stamp-editor .btn {
-	width: 100%;
-}
 stamp-editor .btn-default {
 	border-color: #FEFEFE;
   color: #ccc;
@@ -93,4 +90,29 @@ stamp-editor stamp-component stamp-heading-component .size-h3 input,
 stamp-editor stamp-component stamp-heading-component .size-h3 button {
 	height: 35px;
 	font-size: 15px;
+}
+
+/* Keeping it generic from image component to make it resuable later */
+stamp-editor stamp-component .edit-overlay {
+	  width: 100%;
+    height: 100%;
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.81);
+}
+stamp-editor stamp-component .component-body:before, stamp-editor stamp-component .component-body:after,
+stamp-editor stamp-component .edit-mode:before, stamp-editor stamp-component .edit-mode:after {
+	display: table;
+	content: '';  
+	clear: both;
+}
+
+/* Reduce the min height of TA */
+stamp-editor .ta-editor.ta-html, 
+stamp-editor .ta-scroll-window > .ta-bind,
+stamp-editor .ta-scroll-window.form-control {
+	min-height: 100px;
+	height: auto;
+	overflow: auto;
+	font-family: inherit;
+	font-size: 100%;
 }
