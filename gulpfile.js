@@ -18,7 +18,7 @@ const browserSync = require('browser-sync').create()
 const jsGlob = 'src/**/*.js'
 const htmlGlob = 'src/**/*.html'
 
-const demoGlob = ['app/demo/**/*.html', 'app/demo/**/*.js', 'app/demo/**/*.css']
+const demoGlob = ['demo/**/*.html', 'demo/**/*.js', 'demo/**/*.css']
 
 // the newline is needed in case the file ends with a line comment, the semi-colon is needed if the last statement wasn't terminated
 const jsConcatOptions = { newLine : '\n;' }
@@ -64,6 +64,7 @@ gulp.task('compile', ['transpile'], () => {
     .pipe(uglify().on('error', gutil.log))
     .pipe(rename('bundle.min.js'))
     .pipe(gulp.dest("dist/angular/"))
+    .pipe(browserSync.stream())
   
   return appStream
 })
