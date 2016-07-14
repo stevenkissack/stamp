@@ -35,39 +35,32 @@
 
     // Calls parseColumn
     function parseBlock(blockJson, blockIndex) {
-      // If attr exists, use it, else use fluid
-      var layoutName = blockJson.attributes && blockJson.attributes.layout ? blockJson.attributes.layout : 'fluid';
+      // If attr exists, use it, else use oneColumn
+      var layoutName = blockJson.attributes && blockJson.attributes.layout ? blockJson.attributes.layout : 'oneColumn';
       var blockLayout = mapperResources.stampLayouts[layoutName];
       var blockHTMLString = '';
 
       if (!blockLayout) {
-        if (layoutName === 'fluid') {
-          console.log('Warning! Missing layout config and fallback fluid layout. Exiting.');
+        if (layoutName === 'oneColumn') {
+          console.log('Warning! Missing layout config and fallback oneColumn layout. Exiting.');
           return blockHTMLString;
         }
 
-        console.log('Warning! Missing layout config, reverting to fluid');
+        console.log('Warning! Missing layout config, reverting to oneColumn');
         // Hope this does exist, or we have bigger problems
-        layoutName = 'fluid';
-        blockLayout = mapperResources.stampLayouts.fluid;
+        layoutName = 'oneColumn';
+        blockLayout = mapperResources.stampLayouts.oneColumn;
       }
 
-      // No rows for fluid layouts
-      if (layoutName !== 'fluid') {
-        blockHTMLString += '<div class="row">';
-      } else {
-        blockHTMLString += '<div>';
-      }
+      blockHTMLString += '<div>';
 
       // Add all columns
       blockJson.columns.forEach(function (column, index) {
-        // Will never fire for fluid layouts
         if (blockLayout.maxColumns !== undefined && index + 1 > blockLayout.maxColumns) {
           console.log('Warning! Data exceeds maxColumns for this layout, Omitting extra columns.');
           return;
         }
-        // Don't pass index on fluid layouts so we can omit the col classes
-        var newColumn = parseColumn(column, layoutName === 'fluid' ? false : index, blockLayout, blockIndex);
+        var newColumn = parseColumn(column, index, blockLayout, blockIndex);
         if (newColumn) {
           blockHTMLString += newColumn;
         }
@@ -81,11 +74,7 @@
     // Calls runComponentCompilation
     function parseColumn(columnJson, columnIndex, blockLayout) {
       var columnHTML = '<div class="';
-      // No col classes on fluid
-      if (columnIndex !== false) {
-        var columnClasses = _getColumnClasses(columnIndex, blockLayout);
-        columnHTML += columnClasses;
-      }
+      columnHTML += _getColumnClasses(columnIndex, blockLayout);
       columnHTML += '">';
 
       // Add all components
@@ -213,7 +202,7 @@
 
       return {
         generate: function generate(json) {
-          console.log('Called stamp.mappers.StampHTML.generate [JSON -> HTML]');
+          //console.log('Called stamp.mappers.StampHTML.generate [JSON -> HTML]')
           return outputHTML(json);
         }
       };

@@ -1,9 +1,9 @@
 angular.module('stampSetup')
-.run(['stampRegister', '$window', 'stampTranslations', 'stampOptions', function(stampRegister, $window, stampTranslations, stampOptions) {
+.run(['stampRegister', '$window', 'stampTranslations', function (stampRegister, $window, stampTranslations) {
 
   // Move these into core after testing this run block works
   stampRegister.layout('TwoColumnsLeftMain', {
-    //icon: 'question-mark',
+    // icon: 'question-mark',
     label: 'Left Weighted Two Columns', // TODO: stampTranslations.layouts.,
     maxColumns: 2,
     columnStyles: {
@@ -13,7 +13,7 @@ angular.module('stampSetup')
   })
 
   stampRegister.layout('TwoColumnsRightMain', {
-    //icon: 'question-mark',
+    // icon: 'question-mark',
     label: 'Right Weighted Two Columns', // TODO: stampTranslations.layouts.,
     maxColumns: 2,
     columnStyles: {
@@ -22,8 +22,8 @@ angular.module('stampSetup')
     }
   })
 
-  /*stampRegister.layout('fourColumn', {
-    //icon: 'todo',
+  /* stampRegister.layout('fourColumn', {
+    // icon: 'todo',
     label: 'Three Columns', // TODO: stampTranslations.layouts.,
     maxColumns: 4,
     columns: {
@@ -37,10 +37,10 @@ angular.module('stampSetup')
     icon: 'fa fa-code',
     label: 'Licence Restrictions',
     directive: 'stampLicenceControl',
-    preRender: function(componentData) {
+    preRender: function (componentData) {
       return componentData
     },
-    postRender: function(componentHTML) {
+    postRender: function (componentHTML) {
       return componentHTML
     }
   })
@@ -49,15 +49,15 @@ angular.module('stampSetup')
     icon: 'fa fa-code',
     label: 'Licence Restrictions',
     directive: 'stampLicenceControl',
-    preRender: function(blockData) {
+    preRender: function (blockData) {
       return blockData
     },
-    postRender: function(blockHTML) {
+    postRender: function (blockHTML) {
       return blockHTML
     }
   })
 
-  /*stampRegister.component('html', {
+  /* stampRegister.component('html', {
     icon: 'fa fa-code',
     label: 'HTML',
     directive: 'stampHtmlComponent',
@@ -70,13 +70,10 @@ angular.module('stampSetup')
     icon: 'fa fa-code',
     label: 'textAngular',
     directive: 'stampTextAngularComponent',
-    toHTML: function(componentJson, block) {
+    toHTML: function (componentJson, block) {
       return componentJson.data.value
     }
   })
-
-  
-
 }])
 .directive('stampTextAngularComponent', [function () {
   // This needs to be replaced by something more advanced
@@ -92,7 +89,7 @@ angular.module('stampSetup')
     }
   }
 }])
-/*.directive('stampHtmlComponent', [function () {
+/* .directive('stampHtmlComponent', [function () {
   // This needs to be replaced by something more advanced
   // TODO: float/align, label, alt, frames
   return {

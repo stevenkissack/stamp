@@ -1,26 +1,4 @@
-(function(module) {
-try { module = angular.module("stamp"); }
-catch(err) { module = angular.module("stamp", []); }
-module.run(["$templateCache", function($templateCache) {
-  $templateCache.put("src/angular/templates/addComponentModal.html",
-    "<div class=\"stamp-modal stamp-modal-add-component modal-content\">\n" +
-    "  <div class=\"modal-header\">\n" +
-    "    <button type=\"button\" class=\"close\" aria-label=\"Close\" data-ng-click=\"close()\"><span aria-hidden=\"true\">&times;</span></button>\n" +
-    "    <h4 class=\"modal-title\">Add Component</h4>\n" +
-    "  </div>\n" +
-    "  <div class=\"modal-body\">\n" +
-    "    <div class=\"component-list\">\n" +
-    "      <div class=\"component-list-item\" data-ng-class=\"{'no-icon' : !value.icon}\" data-ng-repeat=\"(key, value) in components\" data-ng-click=\"insert(key)\">\n" +
-    "        <i class=\"{{value.icon}}\" data-ng-if=\"value.icon\"></i>\n" +
-    "        <span>{{value.label}}</span>\n" +
-    "      </div>\n" +
-    "    </div>\n" +
-    "  </div>\n" +
-    "</div>");
-}]);
-})();
-
-;'use strict';
+'use strict';
 
 (function (exports) {
 
@@ -57,39 +35,32 @@ module.run(["$templateCache", function($templateCache) {
 
     // Calls parseColumn
     function parseBlock(blockJson, blockIndex) {
-      // If attr exists, use it, else use fluid
-      var layoutName = blockJson.attributes && blockJson.attributes.layout ? blockJson.attributes.layout : 'fluid';
+      // If attr exists, use it, else use oneColumn
+      var layoutName = blockJson.attributes && blockJson.attributes.layout ? blockJson.attributes.layout : 'oneColumn';
       var blockLayout = mapperResources.stampLayouts[layoutName];
       var blockHTMLString = '';
 
       if (!blockLayout) {
-        if (layoutName === 'fluid') {
-          console.log('Warning! Missing layout config and fallback fluid layout. Exiting.');
+        if (layoutName === 'oneColumn') {
+          console.log('Warning! Missing layout config and fallback oneColumn layout. Exiting.');
           return blockHTMLString;
         }
 
-        console.log('Warning! Missing layout config, reverting to fluid');
+        console.log('Warning! Missing layout config, reverting to oneColumn');
         // Hope this does exist, or we have bigger problems
-        layoutName = 'fluid';
-        blockLayout = mapperResources.stampLayouts.fluid;
+        layoutName = 'oneColumn';
+        blockLayout = mapperResources.stampLayouts.oneColumn;
       }
 
-      // No rows for fluid layouts
-      if (layoutName !== 'fluid') {
-        blockHTMLString += '<div class="row">';
-      } else {
-        blockHTMLString += '<div>';
-      }
+      blockHTMLString += '<div>';
 
       // Add all columns
       blockJson.columns.forEach(function (column, index) {
-        // Will never fire for fluid layouts
         if (blockLayout.maxColumns !== undefined && index + 1 > blockLayout.maxColumns) {
           console.log('Warning! Data exceeds maxColumns for this layout, Omitting extra columns.');
           return;
         }
-        // Don't pass index on fluid layouts so we can omit the col classes
-        var newColumn = parseColumn(column, layoutName === 'fluid' ? false : index, blockLayout, blockIndex);
+        var newColumn = parseColumn(column, index, blockLayout, blockIndex);
         if (newColumn) {
           blockHTMLString += newColumn;
         }
@@ -103,11 +74,7 @@ module.run(["$templateCache", function($templateCache) {
     // Calls runComponentCompilation
     function parseColumn(columnJson, columnIndex, blockLayout) {
       var columnHTML = '<div class="';
-      // No col classes on fluid
-      if (columnIndex !== false) {
-        var columnClasses = _getColumnClasses(columnIndex, blockLayout);
-        columnHTML += columnClasses;
-      }
+      columnHTML += _getColumnClasses(columnIndex, blockLayout);
       columnHTML += '">';
 
       // Add all components
@@ -235,7 +202,7 @@ module.run(["$templateCache", function($templateCache) {
 
       return {
         generate: function generate(json) {
-          console.log('Called stamp.mappers.StampHTML.generate [JSON -> HTML]');
+          //console.log('Called stamp.mappers.StampHTML.generate [JSON -> HTML]')
           return outputHTML(json);
         }
       };
@@ -246,38 +213,19 @@ module.run(["$templateCache", function($templateCache) {
 try { module = angular.module("stamp"); }
 catch(err) { module = angular.module("stamp", []); }
 module.run(["$templateCache", function($templateCache) {
-  $templateCache.put("src/angular/templates/block.html",
-    "<div class=\"block-header clearfix\">\n" +
-    "    <span class=\"pull-right\">\n" +
-    "      <span uib-dropdown=\"\">\n" +
-    "        <a href=\"\" id=\"simple-dropdown\" uib-dropdown-toggle=\"\">Layout: {{layouts[data.attributes.layout].label}}</a>\n" +
-    "        <ul class=\"dropdown-menu\" uib-dropdown-menu=\"\" aria-labelledby=\"simple-dropdown\">\n" +
-    "          <li data-ng-repeat=\"(key, value) in layouts\">\n" +
-    "            <a data-ng-click=\"changeLayout(key)\">{{key == 'fluid' ? 'Remove Layout (Fluid)' : value.label}}</a>\n" +
-    "          </li>\n" +
-    "        </ul>\n" +
-    "      </span>\n" +
-    "      <a data-ng-if=\"blockIndex !== 0\" data-ng-click=\"moveUp()\">&#9650;</a>\n" +
-    "      <a data-ng-if=\"blockIndex !== blockCount - 1\" data-ng-click=\"moveDown()\">&#9660;</a>\n" +
-    "      <button type=\"button\" class=\"close\" aria-label=\"remove\" data-ng-click=\"remove()\"><span aria-hidden=\"true\">&times;</span></button>\n" +
-    "    </span>\n" +
-    "</div>\n" +
-    "<div class=\"alert alert-danger\" data-ng-if=\"layout.maxColumns && layout.maxColumns < data.columns.length\">This layout has a column limit of {{layout.maxColumns}}, the column count is {{data.columns.length}}, switch to a {{data.columns.length}} column layout</div>\n" +
-    "<div class=\"block-body\">\n" +
-    "  <div data-ng-class=\"getColumnClasses($index)\" data-ng-repeat=\"column in data.columns track by $index\">\n" +
-    "    <div class=\"stamp-component-wrapper component-{{$index}}\" data-ng-repeat=\"component in column.components track by $index\">\n" +
-    "      <stamp-component data=\"component\" col-index=\"$parent.$index\" com-index=\"$index\" com-count=\"column.components.length\"></stamp-component>\n" +
-    "    </div>\n" +
-    "    <div data-ng-if=\"!parent.locked && !parent.readOnly\">\n" +
-    "      <input class=\"btn btn-warning btn-lg btn-block\" type=\"button\" value=\"Remove Column\" data-ng-if=\"column.components.length == 0\" data-ng-click=\"removeColumn($index)\">\n" +
-    "      <input class=\"btn btn-default btn-lg btn-block\" type=\"button\" value=\"+ Component\" data-ng-click=\"addComponent($parent.$index)\">\n" +
-    "    </div>\n" +
+  $templateCache.put("src/angular/templates/addComponentModal.html",
+    "<div class=\"stamp-modal stamp-modal-add-component modal-content\">\n" +
+    "  <div class=\"modal-header\">\n" +
+    "    <button type=\"button\" class=\"close\" aria-label=\"Close\" data-ng-click=\"close()\"><span aria-hidden=\"true\">&times;</span></button>\n" +
+    "    <h4 class=\"modal-title\">Add Component</h4>\n" +
     "  </div>\n" +
-    "  <!-- enable this instead of the below option when you've added the ability to add no middle column if 3 are missing on a 3 col layout <div ng-if=\"emptyColumnCount().length > 0\" ng-class=\"getColumnClasses($index, true)\" ng-repeat=\"emptyColumn in emptyColumnCount() track by $index\">\n" +
-    "    <div ng-if=\"!parent.locked && !parent.readOnly\"><input class=\"btn btn-default btn-lg btn-block\" type=\"button\" ng-click=\"addColumn($index)\" value=\"+ Column\"></input></div>\n" +
-    "  </div>-->\n" +
-    "  <div data-ng-if=\"!parent.locked && !parent.readOnly && (emptyColumnCount().length > 0  && data.attributes.layout != 'fluid' || data.attributes.layout == 'fluid' && data.columns.length == 0)\" data-ng-class=\"getColumnClasses(0, true)\">\n" +
-    "    <input class=\"btn-block btn btn-default btn-lg\" type=\"button\" value=\"+ Column\" data-ng-click=\"addColumn()\">\n" +
+    "  <div class=\"modal-body\">\n" +
+    "    <div class=\"component-list\">\n" +
+    "      <div class=\"component-list-item\" data-ng-if=\"value\" data-ng-class=\"{'no-icon' : !value.icon}\" data-ng-repeat=\"(key, value) in components\" data-ng-click=\"insert(key)\">\n" +
+    "        <i class=\"{{value.icon}}\" data-ng-if=\"value.icon\"></i>\n" +
+    "        <span>{{value.label}}</span>\n" +
+    "      </div>\n" +
+    "    </div>\n" +
     "  </div>\n" +
     "</div>");
 }]);
@@ -292,15 +240,13 @@ module.run(["$templateCache", function($templateCache) {
   }
 
   var stamp = angular.module('stamp', [/*'stamp.models', */'stamp.mappers', 'stampSetup', 'ui.bootstrap']);
-  stamp.value('stampConfig', {});
-  stamp.directive('stampEditor', ['$rootScope', '$compile', '$timeout', '$window', 'stampConfig', function ($rootScope, $compile, $timeout, $window, stampConfig) {
-    stampConfig = stampConfig || {};
+  stamp.directive('stampEditor', ['$rootScope', '$compile', '$timeout', '$window', 'stampOptions', function ($rootScope, $compile, $timeout, $window, stampOptions) {
 
     var generatedIds = 0;
     var IDAttrPrefix = 'ui-stamp-editor-';
 
-    //if (stampConfig.someproperty) { // Useful for passing non-init related settings to Stamp from Angular
-    //  stamp.someproperty = stampConfig.someproperty
+    //if (stampOptions.someproperty) { // Useful for passing non-init related settings to Stamp from Angular
+    //  stamp.someproperty = stampOptions.someproperty
     //}
 
     return {
@@ -322,13 +268,13 @@ module.run(["$templateCache", function($templateCache) {
         // Merge all our settings from global and instance level
         angular.extend(expression, scope.$eval(attrs.stampOptions));
 
-        // extend options with initial stampConfig and options from directive attribute value
-        angular.extend(options, stampConfig, expression);
+        // extend options with initial stampOptions and options from directive attribute value
+        angular.extend(options, stampOptions || {}, expression);
 
         // Set all the settings
         scope.attributes = angular.extend({
-          locked: false, // Stop stack changes
-          readOnly: false // Stop content edits
+          locked: false, // Stops stack changes
+          readOnly: false // Stops content edits
         }, {
           locked: attrs.locked ? true : false, // TODO: hook up to the html attr naming
           readOnly: attrs.readOnly ? true : false
@@ -392,7 +338,7 @@ module.run(["$templateCache", function($templateCache) {
           scope.$watch(function () {
             return JSON.stringify(ngModel.$modelValue);
           }, function (newValue, oldValue) {
-            console.log("ngModel value changed via model watch" /*, newValue*/);
+            //console.log( "ngModel value changed via model watch"/*, newValue*/ )
             // Update internal reference
             scope.json = ngModel.$modelValue;
           });
@@ -408,7 +354,7 @@ module.run(["$templateCache", function($templateCache) {
           // Default: Add a single column block with one text component
           scope.json.blocks.splice(index !== undefined ? index : scope.json.blocks.length, 0, {
             attributes: {
-              layout: 'oneColumn' // Want this as default, TODO: make this an option
+              layout: 'oneColumn' // Want this as default, TODO: make all this config an option
             },
             columns: [{
               components: [{
@@ -420,6 +366,10 @@ module.run(["$templateCache", function($templateCache) {
         };
       },
       controller: ['$scope', function ($scope) {
+        // Use this in the component link function to order the componentControls
+        this.getAttributes = function () {
+          return $scope.attributes;
+        };
 
         this.removeBlock = function (index) {
           /*let blockDeleted = */$scope.json.blocks.splice(index, 1);
@@ -436,7 +386,8 @@ module.run(["$templateCache", function($templateCache) {
     };
   }]);
 
-  // This will only run on load for now as it had issues sizing correctly
+  // NOTE: Are you figuring out how to allow resizing under the initial height when on Chrome?
+  //       If so, this is your issue: https://bugs.chromium.org/p/chromium/issues/detail?id=94583
   stamp.directive("stampAutoHeight", function ($timeout) {
     return {
       restrict: 'A',
@@ -458,7 +409,7 @@ module.run(["$templateCache", function($templateCache) {
           $timeout(resize, 10);
         });
 
-        // this was having issues calculating the right size
+        // This will only run on load for now as it had issues sizing correctly
         // element.on("blur keyup change", resize)
 
         $timeout(resize, 0);
@@ -466,7 +417,7 @@ module.run(["$templateCache", function($templateCache) {
     };
   });
 
-  stamp.directive('stampBlock', ['stampLayouts', '$uibModal', function (stampLayouts, $uibModal) {
+  stamp.directive('stampBlock', ['stampLayouts', '$uibModal', '$timeout', '$compile', 'stampBlockControls', function (stampLayouts, $uibModal, $timeout, $compile, stampBlockControls) {
     return {
       restrict: 'E',
       require: '^stampEditor',
@@ -479,13 +430,9 @@ module.run(["$templateCache", function($templateCache) {
       link: function link(scope, element, attrs, parentCtrl) {
 
         scope.layouts = stampLayouts; // For dropdown
-        //scope.showAddComponent = false
-        //scope.addComponentIndex = undefined
 
         // Watch for layout changes
-        scope.$watch(function () {
-          return scope.data.attributes.layout;
-        }, function (newValue, oldValue) {
+        scope.$watch('data.attributes.layout', function (newValue, oldValue) {
           if (oldValue !== newValue) {
             updateLayout(oldValue, newValue);
           }
@@ -508,17 +455,47 @@ module.run(["$templateCache", function($templateCache) {
             // scope.data.attributes.layout = oldValue
             scope.blockError = 'This layout has a column limit of ' + scope.layout.maxColumns + ', the column count is ' + scope.data.columns.length;
           }
-          console.log('broadcasting');
+
           scope.$broadcast('layoutChanged', scope.data.attributes.layout);
         }
 
         // Note: Not sure what defaults to add at a block level
         scope.data.attributes = scope.data.attributes || {};
-        scope.data.attributes.layout = scope.data.attributes.layout || 'fluid';
+        scope.data.attributes.layout = scope.data.attributes.layout || 'oneColumn';
 
         // Manual call to get it ready for template calls to getColumnClasses
         updateLayout(undefined, scope.data.attributes.layout);
 
+        /**
+         *  CREATE Block Controls
+         */
+        function createDirective(directiveName) {
+          var parsedDirectiveName = camelToHyphen(directiveName);
+          return '<' + parsedDirectiveName + '></' + parsedDirectiveName + '>';
+        }
+        var blockControlsTemplate = '';
+        var parentAttrs = parentCtrl.getAttributes();
+
+        // There should always be an order defined but we'll fall back anyway
+        var layoutOrder = parentAttrs && parentAttrs.blockControlLayout ? parentAttrs.blockControlLayout : Object.keys(stampBlockControls);
+
+        // Add all controls to the controls template string
+        layoutOrder.forEach(function (key) {
+          var control = stampBlockControls[key];
+          if (control && control.directive) {
+            blockControlsTemplate += createDirective(control.directive);
+          }
+        });
+
+        // Only compile the new part of the DOM to stop duplicate compiles (can trigger multi clicks in header)
+        // This was an issue only if we start recompiling this on watch changes which we now don't do
+        var wrapperEl = angular.element(element[0].getElementsByClassName('block-controls')[0]);
+        wrapperEl.empty();
+        wrapperEl.append($compile(angular.element(blockControlsTemplate))(scope));
+
+        /**
+         *  APIs for template calls
+         */
         scope.getColumnClasses = function (columnIndex, isEmptyColumn) {
 
           // When getting classes for empty columns it needs to carry on from the last index
@@ -557,29 +534,6 @@ module.run(["$templateCache", function($templateCache) {
           return combinedClass;
         };
 
-        scope.addComponent = function (columnIndex) {
-
-          var modalInstance = $uibModal.open({
-            //animation: false,
-            templateUrl: '../src/angular/templates/addComponentModal.html',
-            controller: 'StampAddComponentModalInstanceCtrl' //,
-            //size: 'lg'
-          });
-
-          modalInstance.result.then(function (selectedType) {
-            scope.data.columns[columnIndex].components.push({
-              type: selectedType,
-              data: {}
-            });
-          } /*, function () {
-            }*/);
-
-          // disabled the below for now as just using pop-ups for simplicity
-          //scope.showAddComponent = true
-          // This is so we can add it in between components eventually
-          //scope.addComponentIndex = columnIndex
-        };
-
         scope.moveUp = function () {
           parentCtrl.moveBlock(scope.blockIndex, scope.blockIndex - 1);
         };
@@ -590,16 +544,15 @@ module.run(["$templateCache", function($templateCache) {
           parentCtrl.removeBlock(scope.blockIndex);
         };
 
-        scope.changeLayout = function (layout) {
-          // When fluid we want to remove all columns
-          if (layout === 'fluid') {
-            // Loop all and merge to first column
-            while (scope.data.columns.length > 1) {
-              var column = scope.data.columns.pop();
-              // Merge to first
-              scope.data.columns[0].components = scope.data.columns[0].components.concat(column.components);
-            }
+        //TODO: Distributed merging, spread across all columns
+        scope.mergeColumns = function () {
+          while (scope.data.columns.length > 1) {
+            var column = scope.data.columns.pop();
+            // Merge to first
+            scope.data.columns[0].components = scope.data.columns[0].components.concat(column.components);
           }
+        };
+        scope.changeLayout = function (layout) {
           scope.data.attributes.layout = layout;
         };
 
@@ -631,9 +584,44 @@ module.run(["$templateCache", function($templateCache) {
           // Remove
           var componentRemoved = ref.splice(componentIndex, 1);
 
+          // Make sure we don't try and insert past the current stack length
+          if (newComponentIndex === undefined || newComponentIndex > $scope.data.columns[newColumnIndex].components.length) {
+            newComponentIndex = $scope.data.columns[newColumnIndex].components.length;
+          }
+
           // Add
           // Insert at top if new component index isn't passed
-          $scope.data.columns[newColumnIndex].components.splice(newComponentIndex || 0, 0, componentRemoved[0]);
+          $scope.data.columns[newColumnIndex].components.splice(newComponentIndex, 0, componentRemoved[0]);
+        };
+
+        $scope.addComponent = this.addComponent = function (columnIndex, componentIndex, optionalComponent) {
+          // Allow to pass a known type, stopping popup from triggering
+          if (optionalComponent) {
+            $scope.data.columns[columnIndex].components.splice(componentIndex || $scope.data.columns[columnIndex].components.length, 0, {
+              type: optionalComponent.type,
+              data: optionalComponent.data || {}
+            });
+            // Next tick so the element can be added to the DOM and the focus set correctly
+            $timeout(function () {
+              $scope.$broadcast('componentFocus', columnIndex, componentIndex);
+            }, 0);
+          } else {
+            var modalInstance = $uibModal.open({
+              //animation: false,
+              templateUrl: '../src/angular/templates/addComponentModal.html',
+              controller: 'StampAddComponentModalInstanceCtrl' //,
+              //size: 'lg'
+            });
+
+            modalInstance.result.then(function (returnObject) {
+              $scope.data.columns[columnIndex].components.splice(componentIndex || $scope.data.columns[columnIndex].components.length, 0, {
+                type: returnObject.type,
+                data: returnObject.data || {}
+              });
+              $scope.$broadcast('componentFocus', columnIndex, componentIndex);
+            } /*, function () {
+              }*/);
+          }
         };
       }]
     };
@@ -643,67 +631,102 @@ module.run(["$templateCache", function($templateCache) {
     $scope.components = stampComponents;
 
     $scope.insert = function (selected) {
-      $uibModalInstance.close(selected);
+      // TODO: look at passing back default data by using a component hook?
+      // core already supports taking obj.data
+      $uibModalInstance.close({ type: selected });
     };
     $scope.close = function () {
       $uibModalInstance.dismiss();
     };
   }]);
 
-  stamp.directive('stampComponent', ['$compile', 'stampComponents', function ($compile, stampComponents) {
+  stamp.directive('stampComponent', ['$compile', 'stampComponents', 'stampComponentControls', function ($compile, stampComponents, stampComponentControls) {
     return {
       restrict: 'E',
-      require: '^stampBlock',
+      require: ['^stampBlock', '^stampEditor'],
       templateUrl: '../src/angular/templates/component.html',
       scope: {
-        data: '=',
+        component: '=',
         index: '=',
-        colIndex: '=', // Column Index
+        colIndex: '=', // Column Index,
+        colCount: '=', // Column Count
         comIndex: '=', // Component Index
         comCount: '=' },
       // Components Count
-      link: function link(scope, element, attrs, parentCtrl) {
-        if (!scope.data || !scope.data.type) {
+      link: function link(scope, element, attrs, parentCtrls) {
+        var parentCtrlBlock = parentCtrls[0];
+        var parentCtrlEditor = parentCtrls[1];
+
+        if (!scope.component || !scope.component.type) {
           scope.componentError = 'Missing required component data';
           return;
         }
 
         // Runs on a scope watch for type as template needs to change based on type attr
         function updateTemplate() {
-          var directive = stampComponents[scope.data.type];
+          var directive = stampComponents[scope.component.type];
 
           if (!directive) {
-            scope.componentError = 'No component registered for type: ' + scope.data.type;
+            scope.componentError = 'No component registered for type: ' + scope.component.type;
             return;
           }
 
-          var directiveName = camelToHyphen(directive.directive);
-          var template = '<' + directiveName + ' data="data.data"></' + directiveName + '>';
+          var parsedDirectiveName = camelToHyphen(directive.directive);
+          var componentTemplate = '<' + parsedDirectiveName + ' data="component.data"></' + parsedDirectiveName + '>';
 
-          // Remove old & append to last child within the component container
-          // Only compile the new part of the DOM to stop duplicate compiles (can trigger multi clicks in header)
-          var bodyEl = angular.element(element[0].getElementsByClassName('component-body')[0]);
-          bodyEl.empty();
-          bodyEl.append($compile(angular.element(template))(scope));
+          var componentControlsTemplate = '';
+          var parentAttrs = parentCtrlEditor.getAttributes();
+
+          // There should always be an order defined but we'll fall back anyway
+          var layoutOrder = parentAttrs && parentAttrs.componentControlLayout ? parentAttrs.componentControlLayout : Object.keys(stampComponentControls);
+
+          // Add all controls to the controls template string
+          layoutOrder.forEach(function (key) {
+            var control = stampComponentControls[key];
+            if (control && control.directive) {
+              var parsedControlDirectiveName = camelToHyphen(control.directive);
+              componentControlsTemplate += '<' + parsedControlDirectiveName + '></' + parsedControlDirectiveName + '>';
+            }
+          });
+
+          // Append in the component itself and all controls
+          var templ = '<div class="component-header">\
+                         <p class="pull-right">' + componentControlsTemplate + '\
+                         </p>\
+                       </div>\
+                       <div ng-if="componentError" class="alert alert-danger">{{componentError}}<br><br>Component Data:<pre>{{data | json}}</pre></div>\
+                       <div class="component-body">' + componentTemplate + '</div>';
+
+          element.empty();
+          element.append($compile(angular.element(templ))(scope));
         }
 
-        scope.$watch('data.type', function (newVal, oldVal) {
+        scope.$watch('component.type', function (newVal, oldVal) {
           if (newVal !== oldVal) {
             updateTemplate();
           }
         });
         updateTemplate();
 
+        // Allow component to call upwards
+        scope.addComponent = parentCtrlBlock.addComponent;
+
         scope.remove = function () {
           // Send to parent to remove
-          parentCtrl.removeComponent(scope.colIndex, scope.comIndex);
+          parentCtrlBlock.removeComponent(scope.colIndex, scope.comIndex);
         };
         scope.moveUp = function () {
           // params: old col, new col, old com place, new com place
-          parentCtrl.moveComponent(scope.colIndex, scope.colIndex, scope.comIndex, scope.comIndex - 1);
+          parentCtrlBlock.moveComponent(scope.colIndex, scope.colIndex, scope.comIndex, scope.comIndex - 1);
         };
         scope.moveDown = function () {
-          parentCtrl.moveComponent(scope.colIndex, scope.colIndex, scope.comIndex, scope.comIndex + 1);
+          parentCtrlBlock.moveComponent(scope.colIndex, scope.colIndex, scope.comIndex, scope.comIndex + 1);
+        };
+        scope.moveLeft = function () {
+          parentCtrlBlock.moveComponent(scope.colIndex, scope.colIndex - 1, scope.comIndex, scope.comIndex);
+        };
+        scope.moveRight = function () {
+          parentCtrlBlock.moveComponent(scope.colIndex, scope.colIndex + 1, scope.comIndex, scope.comIndex);
         };
       }
     };
@@ -713,17 +736,28 @@ module.run(["$templateCache", function($templateCache) {
 try { module = angular.module("stamp"); }
 catch(err) { module = angular.module("stamp", []); }
 module.run(["$templateCache", function($templateCache) {
-  $templateCache.put("src/angular/templates/component.html",
-    "<div class=\"component-wrap\">\n" +
-    "  <div class=\"component-header\">\n" +
-    "    <p class=\"pull-right\">\n" +
-    "      <a data-ng-if=\"comIndex !== 0\" data-ng-click=\"moveUp()\">&#9650;</a>\n" +
-    "      <a data-ng-if=\"comIndex !== comCount - 1\" data-ng-click=\"moveDown()\">&#9660;</a>\n" +
-    "      <button type=\"button\" class=\"close\" aria-label=\"remove\" data-ng-click=\"remove()\"><span aria-hidden=\"true\">&times;</span></button>\n" +
-    "    </p>\n" +
+  $templateCache.put("src/angular/templates/block.html",
+    "<div class=\"block-header clearfix\">\n" +
+    "    <span class=\"pull-right\">\n" +
+    "      <span class=\"block-controls\"><!-- Dynamically inserts block controls --></span>\n" +
+    "    </span>\n" +
+    "</div>\n" +
+    "<div class=\"alert alert-danger\" data-ng-if=\"layout.maxColumns && layout.maxColumns < data.columns.length\">This layout has a column limit of {{layout.maxColumns}}, the column count is {{data.columns.length}}, switch to a {{data.columns.length}} column layout</div>\n" +
+    "<div class=\"block-body\">\n" +
+    "  <div data-ng-class=\"getColumnClasses($index)\" data-ng-repeat=\"column in data.columns track by $index\">\n" +
+    "    <div class=\"stamp-component-wrapper component-{{$index}}\" data-ng-repeat=\"component in column.components track by $index\">\n" +
+    "      <stamp-component data-component=\"component\" col-index=\"$parent.$index\" com-index=\"$index\" com-count=\"column.components.length\" col-count=\"data.columns.length\"></stamp-component>\n" +
+    "    </div>\n" +
+    "    <div data-ng-if=\"!parent.locked && !parent.readOnly\">\n" +
+    "      <input class=\"btn btn-warning btn-lg btn-block\" type=\"button\" value=\"Remove Column\" data-ng-if=\"column.components.length == 0\" data-ng-click=\"removeColumn($index)\">\n" +
+    "      <input class=\"btn btn-default btn-lg btn-block\" type=\"button\" value=\"+ Component\" data-ng-click=\"addComponent($parent.$index)\">\n" +
+    "    </div>\n" +
     "  </div>\n" +
-    "  <div class=\"alert alert-danger\" data-ng-if=\"componentError\">{{componentError}}<br><br>Component Data:<pre>{{data | json}}</pre></div>\n" +
-    "  <div class=\"component-body\">\n" +
+    "  <!-- enable this instead of the below option when you've added the ability to add no middle column if 3 are missing on a 3 col layout <div ng-if=\"emptyColumnCount().length > 0\" ng-class=\"getColumnClasses($index, true)\" ng-repeat=\"emptyColumn in emptyColumnCount() track by $index\">\n" +
+    "    <div ng-if=\"!parent.locked && !parent.readOnly\"><input class=\"btn btn-default btn-lg btn-block\" type=\"button\" ng-click=\"addColumn($index)\" value=\"+ Column\"></input></div>\n" +
+    "  </div>-->\n" +
+    "  <div data-ng-if=\"!parent.locked && !parent.readOnly && emptyColumnCount().length > 0\" data-ng-class=\"getColumnClasses(0, true)\">\n" +
+    "    <input class=\"btn-block btn btn-default btn-lg\" type=\"button\" value=\"+ Column\" data-ng-click=\"addColumn()\">\n" +
     "  </div>\n" +
     "</div>");
 }]);
@@ -747,9 +781,9 @@ var stampRegisterFunctions = {};
   // Also gets a registration function too
   stampRegisterFunctions[itemToRegister] = function (itemName) {
     return function (name, item) {
-      if (!name || name === '' || stampSetupData[itemName].hasOwnProperty(name)) {
-        throw new Error('Stamp Error: A unique name is required for a ' + itemName + ' definition');
-      }
+      if (!name || name === '' /*|| stampSetupData[itemName].hasOwnProperty(name) We're going to allow overrides for now, possibly remove once we can disable items */) {
+          throw new Error('Stamp Error: A unique name is required for a ' + itemName + ' definition');
+        }
       stampSetupData[itemName][name] = item;
     };
   }(itemToRegister);
@@ -764,6 +798,8 @@ stampAngularModule.constant('stampRegister', {
   blockControl: stampRegisterFunctions.BlockControls
   // template: registerTemplate
 }).value('stampOptions', {
+  componentControlLayout: ['licenceControl', 'moveComponentArrows', 'removeComponent'],
+  blockControlLayout: ['layoutControl', 'moveBlockArrows', 'removeBlock']
   /* colClass: 'col',
   rowClass: 'row' // TODO*/
   /* componentGroupings: [
@@ -779,12 +815,7 @@ stampAngularModule.constant('stampRegister', {
                                buttontext: "Open in New Window"
                                }
                                }*/
-}).run(['stampRegister', '$window', 'stampTranslations', 'stampOptions', function (stampRegister, $window, stampTranslations, stampOptions) {
-  stampRegister.layout('fluid', {
-    // icon: 'tint',
-    label: 'Fluid', // TODO: stampTranslations.layouts.fluid,
-    maxColumns: undefined
-  });
+}).run(['stampRegister', '$window', 'stampTranslations', function (stampRegister, $window, stampTranslations) {
 
   stampRegister.layout('oneColumn', {
     // icon: 'square',
@@ -838,9 +869,39 @@ stampAngularModule.constant('stampRegister', {
     label: 'Image',
     directive: 'stampImageComponent',
     toHTML: function toHTML(componentJson, block) {
-      // TODO: More attributes to map
-      var className = 'img img-responsive';
-      return '<img src="' + componentJson.data.url + '" class="' + className + '" alt="' + (componentJson.data.alt || '') + '">';
+      var elementString = '';
+
+      function getClasses() {
+        var className = 'figure ';
+
+        switch (componentJson.data.float) {
+          case 'left':
+            className += 'pull-left ';
+            break;
+          case 'center':
+            className += 'center-block ';
+            break;
+          case 'right':
+            className += 'pull-right ';
+            break;
+          default:
+            break;
+        }
+
+        if (componentJson.data.percentageWidth !== null && componentJson.data.percentageWidth !== undefined) {
+          className += 'width-' + componentJson.data.percentageWidth;
+        }
+
+        return className;
+      }
+
+      elementString += '<figure class="' + getClasses() + '" style="display: table;">';
+      elementString += '<img src="' + componentJson.data.url + '" class="img-responsive figure-img" style="width:100%" alt="' + (componentJson.data.alt || '') + '">';
+      if (componentJson.data.figureCaption && componentJson.data.figureCaption.length) {
+        elementString += '<figcaption class="figure-caption text-center" style="display: table-caption; caption-side: bottom;">' + componentJson.data.figureCaption + '</figcaption>';
+      }
+      elementString += '</figure>';
+      return elementString;
     }
   });
 
@@ -852,13 +913,95 @@ stampAngularModule.constant('stampRegister', {
       return '<table><td>TODO</td></table>';
     }
   });
+
+  stampRegister.componentControl('moveComponentArrows', {
+    directive: 'stampMoveComponentControls'
+  });
+  stampRegister.blockControl('moveBlockArrows', {
+    directive: 'stampMoveBlockControls'
+  });
+
+  stampRegister.componentControl('removeComponent', {
+    directive: 'stampRemoveControl'
+  });
+  stampRegister.blockControl('removeBlock', {
+    directive: 'stampRemoveControl'
+  });
+
+  stampRegister.blockControl('layoutControl', {
+    directive: 'stampChangeLayoutControl'
+  });
+}]).directive('stampRemoveControl', [function () {
+  return {
+    restrict: 'E',
+    scope: false,
+    template: '<button type="button" class="close" ng-click="remove()" aria-label="remove"><span aria-hidden="true">&times;</span></button>'
+  };
+}]).directive('stampChangeLayoutControl', [function () {
+  return {
+    restrict: 'E',
+    scope: false,
+    template: '<span uib-dropdown>\
+        <a href id="simple-dropdown" uib-dropdown-toggle>Layout: {{layouts[data.attributes.layout].label}}</a>\
+        <ul class="dropdown-menu" uib-dropdown-menu aria-labelledby="simple-dropdown">\
+          <li ng-repeat="(key, value) in layouts" ng-if="value">\
+            <a ng-click="changeLayout(key)">{{value.label}}</a>\
+          </li>\
+        </ul>\
+      </span>'
+  };
+}]).directive('stampMoveComponentControls', [function () {
+  return {
+    restrict: 'E',
+    scope: false,
+    template: '<a ng-if="colIndex !== 0" ng-click="moveLeft()">&#9668;</a>\
+               <a ng-if="comIndex !== 0" ng-click="moveUp()">&#9650;</a>\
+               <a ng-if="comIndex !== comCount - 1" ng-click="moveDown()">&#9660;</a>\
+               <a ng-if="colIndex + 1 < colCount" ng-click="moveRight()">&#9658;</a>'
+  };
+}]).directive('stampMoveBlockControls', [function () {
+  return {
+    restrict: 'E',
+    scope: false,
+    template: '<a ng-if="blockIndex !== 0" ng-click="moveUp()">&#9650;</a>\
+               <a ng-if="blockIndex !== blockCount - 1" ng-click="moveDown()">&#9660;</a>'
+  };
+}]).directive('stampEnterHandle', [function () {
+  return {
+    restrict: 'AC',
+    scope: false,
+    link: function link(scope, element, attrs) {
+
+      // Default
+      if (!scope.type) scope.type = 'text';
+
+      element.bind("keydown keypress", function (event) {
+        if (event.which === 13) {
+          scope.$apply(function () {
+            scope.$parent.addComponent(scope.$parent.colIndex, scope.$parent.comIndex + 1, { type: scope.type });
+          });
+          event.preventDefault();
+        }
+      });
+    }
+  };
 }]).directive('stampTextComponent', [function () {
   return {
     restrict: 'E',
     // require: 'ngModel',
-    template: '<textarea stamp-auto-height placeholder="Enter Text.." class="form-control" ng-model="data.value"></textarea>',
+    template: '<textarea stamp-auto-height stamp-enter-handle placeholder="Enter Text.." class="form-control" ng-model="data.value"></textarea>',
     scope: {
       data: '='
+    },
+    link: function link(scope, element, attrs) {
+      // Removes itself on destruction
+      // TODO: Investigate: I think this is leaking.. logging reveals an increasing number of listeners on each call
+      scope.$on('$destroy', scope.$on('componentFocus', function (event, colIndex, comIndex) {
+        // console.log('Focus Check')
+        if (colIndex === scope.$parent.colIndex, comIndex === scope.$parent.comIndex) {
+          element[0].children[0].focus();
+        }
+      }));
     }
   };
 }]).directive('stampHeadingComponent', [function () {
@@ -866,7 +1009,7 @@ stampAngularModule.constant('stampRegister', {
     restrict: 'E',
     // require: 'ngModel',
     template: '<div class="input-group size-h{{data.size || 1}}">\
-                <input type="text" placeholder="Enter Heading Text.." class="form-control" ng-model="data.value">\
+                <input type="text" stamp-enter-handle placeholder="Enter Heading Text.." class="form-control" ng-model="data.value">\
                 <div class="input-group-btn" uib-dropdown>\
                   <button type="button" class="btn btn-default" uib-dropdown-toggle>{{"H" + data.size}} <span class="caret"></span></button>\
                   <ul class="dropdown-menu" uib-dropdown-menu>\
@@ -886,29 +1029,37 @@ stampAngularModule.constant('stampRegister', {
     }
   };
 }]).directive('stampImageComponent', [function () {
-  // This needs to be replaced by something more advanced
-  // TODO: float/align, label, alt, frames
   return {
     restrict: 'E',
     template: '<div ng-class="{\'edit-mode\':editing}" style="position: relative;">\
                 <div ng-show="editing" class="edit-overlay">\
                   <button class="btn pull-right" ng-click="toggleEdit()">Close</button>\
-                  <h4>Alignment</h4>\
+                  <h4>URL</h4>\
+                  <input class="form-control" type="text" ng-model="data.url">\
+                  <h4>Alt</h4>\
+                  <input class="form-control" type="text" ng-model="data.alt">\
+                  <h4>Float</h4>\
                   <div class="btn-group">\
-                    <label class="btn btn-default" ng-model="data.alignment" uib-btn-radio="\'left\'">Left</label>\
-                    <label class="btn btn-default" ng-model="data.alignment" uib-btn-radio="\'center\'">Center</label>\
-                    <label class="btn btn-default" ng-model="data.alignment" uib-btn-radio="\'right\'">Right</label>\
+                    <label class="btn btn-default" ng-model="data.float" uib-btn-radio="\'left\'">Left</label>\
+                    <label class="btn btn-default" ng-model="data.float" uib-btn-radio="\'center\'">Center</label>\
+                    <label class="btn btn-default" ng-model="data.float" uib-btn-radio="\'right\'">Right</label>\
+                    <label class="btn btn-primary" ng-click="data.float = null">Clear</label>\
                   </div>\
-                  <button type="button" class="btn btn-primary" ng-click="data.alignment=null">Clear</button>\
-                  <h4>Styles</h4>\
-                  <input class="form-control" type="text" ng-model="data.style">\
+                  <h4>Size</h4>\
+                  <div class="btn-group">\
+                    <label class="btn btn-default" ng-model="data.percentageWidth" uib-btn-radio="\'25\'">25%</label>\
+                    <label class="btn btn-default" ng-model="data.percentageWidth" uib-btn-radio="\'50\'">50%</label>\
+                    <label class="btn btn-default" ng-model="data.percentageWidth" uib-btn-radio="\'75\'">75%</label>\
+                    <label class="btn btn-default" ng-model="data.percentageWidth" uib-btn-radio="\'100\'">100%</label>\
+                    <label class="btn btn-primary" ng-click="data.percentageWidth = null">Clear</label>\
+                  </div>\
                   <h4>Caption</h4>\
                   <input class="form-control" type="text" ng-model="data.figureCaption">\
                 </div>\
-                <button class="btn btn-transparent pull-right" style="position:absolute;right:8px;" ng-hide="editing" ng-click="toggleEdit()">Edit</button>\
-                <figure ng-class="getClasses()" style="{{data.style || \'\'}}">\
-                  <img ng-src="{{data.url}}" alt="{{data.alt || \'\'}}" class="img-responsive figure-img">\
-                  <figcaption ng-if="data.figureCaption" class="figure-caption text-center">{{data.figureCaption}}</figcaption>\
+                <button class="btn btn-transparent pull-right" style="position:absolute;right:8px;top:8px;" ng-hide="editing" ng-click="toggleEdit()">Edit</button>\
+                <figure ng-class="getClasses()" style="display: table;">\
+                  <img ng-src="{{data.url}}" alt="{{data.alt || \'\'}}" class="img-responsive figure-img" style="width:100%;">\
+                  <figcaption ng-if="data.figureCaption" class="figure-caption text-center" style="display: table-caption; caption-side: bottom;">{{data.figureCaption}}</figcaption>\
                 </figure>\
               </div>',
     scope: {
@@ -917,8 +1068,8 @@ stampAngularModule.constant('stampRegister', {
     link: function link(scope, element, attrs) {
       scope.editing = false;
       scope.clearAll = function () {
-        scope.data.width = null;
-        scope.data.alignment = null;
+        scope.data.percentageWidth = null;
+        scope.data.float = null;
       };
       scope.toggleEdit = function () {
         scope.editing = !scope.editing;
@@ -926,7 +1077,7 @@ stampAngularModule.constant('stampRegister', {
       scope.getClasses = function () {
         var className = 'figure ';
 
-        switch (scope.data.alignment) {
+        switch (scope.data.float) {
           case 'left':
             className += 'pull-left ';
             break;
@@ -938,6 +1089,10 @@ stampAngularModule.constant('stampRegister', {
             break;
           default:
             break;
+        }
+
+        if (scope.data.percentageWidth !== null && scope.data.percentageWidth !== undefined) {
+          className += 'width-' + scope.data.percentageWidth;
         }
 
         return className;
@@ -959,6 +1114,17 @@ stampAngularModule.constant('stampRegister', {
     }
   };
 }]);
+;(function(module) {
+try { module = angular.module("stamp"); }
+catch(err) { module = angular.module("stamp", []); }
+module.run(["$templateCache", function($templateCache) {
+  $templateCache.put("src/angular/templates/component.html",
+    "<div class=\"component-wrap\">\n" +
+    "  <!-- Dynamically created in stamp.js component directive -->\n" +
+    "</div>");
+}]);
+})();
+
 ;(function(module) {
 try { module = angular.module("stamp"); }
 catch(err) { module = angular.module("stamp", []); }

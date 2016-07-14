@@ -195,22 +195,22 @@
         },
         {
           //attributes: {
-          //  layout: undefined // Will default to fluid
+          //  layout: undefined // Will default to onColumn
           //},
           columns: [
             {
               components: [
                 {
                   type: 'text',
-                  data: 'Fluid block [Item 1]'
+                  data: ' block [Item 1]'
                 },
                 {
                   type: 'text',
-                  data: 'Fluid block [Item 2]'
+                  data: ' block [Item 2]'
                 },
                 {
                   type: 'text',
-                  data: 'Fluid block [Item 3]'
+                  data: ' block [Item 3]'
                 }
               ]
             }
@@ -257,7 +257,7 @@
         var body = iframe.contentDocument.body
         var head = iframe.contentDocument.head
 
-        head.innerHTML = '<link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">'
+        head.innerHTML = '<link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">' + '<style> .width-25 { width: 25%; } .width-50 { width: 50%; } .width-75 { width: 75%; } .width-100 { width: 100%; }</style>'
 
         scope.$watch(function () { return JSON.stringify(scope.stampMarkup) }, function () {
           body.innerHTML = StampHTML.generate(scope.stampMarkup)

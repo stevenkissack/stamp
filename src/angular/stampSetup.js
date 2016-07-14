@@ -14,7 +14,7 @@ var stampRegisterFunctions = {};
   // Also gets a registration function too
   stampRegisterFunctions[itemToRegister] = (function (itemName) { 
     return function (name, item) {
-      if (!name || name === '' || stampSetupData[itemName].hasOwnProperty(name)) {
+      if (!name || name === '' /*|| stampSetupData[itemName].hasOwnProperty(name) We're going to allow overrides for now, possibly remove once we can disable items */) {
         throw new Error('Stamp Error: A unique name is required for a ' + itemName + ' definition')
       }
       stampSetupData[itemName][name] = item
@@ -33,6 +33,8 @@ stampAngularModule
   // template: registerTemplate
 })
 .value('stampOptions',  {
+  componentControlLayout: ['licenceControl', 'moveComponentArrows', 'removeComponent'],
+  blockControlLayout: ['layoutControl', 'moveBlockArrows', 'removeBlock']
   /* colClass: 'col',
   rowClass: 'row' // TODO*/
 	/* componentGroupings: [
@@ -50,12 +52,7 @@ stampAngularModule
 		}
 	}*/
 })
-.run(['stampRegister', '$window', 'stampTranslations', 'stampOptions', function (stampRegister, $window, stampTranslations, stampOptions) {
-  stampRegister.layout('fluid', {
-    // icon: 'tint',
-    label: 'Fluid', // TODO: stampTranslations.layouts.fluid,
-    maxColumns: undefined
-  })
+.run(['stampRegister', '$window', 'stampTranslations', function (stampRegister, $window, stampTranslations) {
 
   stampRegister.layout('oneColumn', {
     // icon: 'square',
@@ -109,9 +106,39 @@ stampAngularModule
     label: 'Image',
     directive: 'stampImageComponent',
     toHTML: function(componentJson, block) {
-      // TODO: More attributes to map
-      let className = 'img img-responsive'
-      return '<img src="' + componentJson.data.url + '" class="' + className + '" alt="' + (componentJson.data.alt || '') + '">'
+      let elementString = ''
+
+      function getClasses() {
+        let className = 'figure '
+        
+        switch (componentJson.data.float) {
+            case 'left':
+                className += 'pull-left '
+                break; 
+            case 'center':
+                className += 'center-block '
+                break
+            case 'right':
+                className += 'pull-right '
+                break 
+            default: 
+                break
+        }
+
+        if(componentJson.data.percentageWidth !== null && componentJson.data.percentageWidth !== undefined) {
+          className += 'width-' + componentJson.data.percentageWidth
+        }
+        
+        return className
+      }
+
+      elementString += '<figure class="' + getClasses() + '" style="display: table;">'
+      elementString +=   '<img src="' + componentJson.data.url + '" class="img-responsive figure-img" style="width:100%" alt="' + (componentJson.data.alt || '') + '">'
+      if(componentJson.data.figureCaption && componentJson.data.figureCaption.length) {
+        elementString += '<figcaption class="figure-caption text-center" style="display: table-caption; caption-side: bottom;">' + componentJson.data.figureCaption + '</figcaption>'
+      }
+      elementString += '</figure>'
+      return elementString
     }
   })
 
@@ -123,15 +150,102 @@ stampAngularModule
       return '<table><td>TODO</td></table>'
     }
   })
+  
+  stampRegister.componentControl('moveComponentArrows', {
+    directive: 'stampMoveComponentControls'
+  })
+  stampRegister.blockControl('moveBlockArrows', {
+    directive: 'stampMoveBlockControls'
+  })
 
+  stampRegister.componentControl('removeComponent', {
+    directive: 'stampRemoveControl'
+  })
+  stampRegister.blockControl('removeBlock', {
+    directive: 'stampRemoveControl'
+  })
+
+  stampRegister.blockControl('layoutControl', {
+    directive: 'stampChangeLayoutControl'
+  })
+
+}])
+.directive('stampRemoveControl', [function () {
+  return {
+    restrict: 'E',
+    scope: false,
+    template: '<button type="button" class="close" ng-click="remove()" aria-label="remove"><span aria-hidden="true">&times;</span></button>'
+  }
+}])
+.directive('stampChangeLayoutControl', [function () {
+  return {
+    restrict: 'E',
+    scope: false,
+    template: '<span uib-dropdown>\
+        <a href id="simple-dropdown" uib-dropdown-toggle>Layout: {{layouts[data.attributes.layout].label}}</a>\
+        <ul class="dropdown-menu" uib-dropdown-menu aria-labelledby="simple-dropdown">\
+          <li ng-repeat="(key, value) in layouts" ng-if="value">\
+            <a ng-click="changeLayout(key)">{{value.label}}</a>\
+          </li>\
+        </ul>\
+      </span>'
+  }
+}])
+.directive('stampMoveComponentControls', [function () {
+  return {
+    restrict: 'E',
+    scope: false,
+    template: '<a ng-if="colIndex !== 0" ng-click="moveLeft()">&#9668;</a>\
+               <a ng-if="comIndex !== 0" ng-click="moveUp()">&#9650;</a>\
+               <a ng-if="comIndex !== comCount - 1" ng-click="moveDown()">&#9660;</a>\
+               <a ng-if="colIndex + 1 < colCount" ng-click="moveRight()">&#9658;</a>'
+  }
+}])
+.directive('stampMoveBlockControls', [function () {
+  return {
+    restrict: 'E',
+    scope: false,
+    template: '<a ng-if="blockIndex !== 0" ng-click="moveUp()">&#9650;</a>\
+               <a ng-if="blockIndex !== blockCount - 1" ng-click="moveDown()">&#9660;</a>'
+  }
+}])
+.directive('stampEnterHandle', [function () {
+  return {
+    restrict: 'AC',
+    scope: false,
+    link: function(scope, element, attrs) {
+      
+      // Default
+      if(!scope.type) scope.type = 'text'
+
+      element.bind("keydown keypress", function (event) {
+        if(event.which === 13) {
+          scope.$apply(function () {
+              scope.$parent.addComponent(scope.$parent.colIndex, scope.$parent.comIndex + 1, {type: scope.type})
+          })
+          event.preventDefault()
+        }
+      })
+    }
+  }
 }])
 .directive('stampTextComponent', [function () {
   return {
     restrict: 'E',
     // require: 'ngModel',
-    template: '<textarea stamp-auto-height placeholder="Enter Text.." class="form-control" ng-model="data.value"></textarea>',
+    template: '<textarea stamp-auto-height stamp-enter-handle placeholder="Enter Text.." class="form-control" ng-model="data.value"></textarea>',
     scope: {
       data: '='
+    },
+    link: function(scope, element, attrs) {
+      // Removes itself on destruction
+      // TODO: Investigate: I think this is leaking.. logging reveals an increasing number of listeners on each call
+      scope.$on('$destroy', scope.$on('componentFocus', function(event, colIndex, comIndex) {
+        // console.log('Focus Check')
+        if(colIndex === scope.$parent.colIndex, comIndex === scope.$parent.comIndex) {
+          element[0].children[0].focus()
+        }
+      }))
     }
   }
 }])
@@ -140,7 +254,7 @@ stampAngularModule
     restrict: 'E',
     // require: 'ngModel',
     template: '<div class="input-group size-h{{data.size || 1}}">\
-                <input type="text" placeholder="Enter Heading Text.." class="form-control" ng-model="data.value">\
+                <input type="text" stamp-enter-handle placeholder="Enter Heading Text.." class="form-control" ng-model="data.value">\
                 <div class="input-group-btn" uib-dropdown>\
                   <button type="button" class="btn btn-default" uib-dropdown-toggle>{{"H" + data.size}} <span class="caret"></span></button>\
                   <ul class="dropdown-menu" uib-dropdown-menu>\
@@ -161,29 +275,37 @@ stampAngularModule
   }
 }])
 .directive('stampImageComponent', [function () {
-  // This needs to be replaced by something more advanced
-  // TODO: float/align, label, alt, frames
   return {
     restrict: 'E',
     template: '<div ng-class="{\'edit-mode\':editing}" style="position: relative;">\
                 <div ng-show="editing" class="edit-overlay">\
                   <button class="btn pull-right" ng-click="toggleEdit()">Close</button>\
-                  <h4>Alignment</h4>\
+                  <h4>URL</h4>\
+                  <input class="form-control" type="text" ng-model="data.url">\
+                  <h4>Alt</h4>\
+                  <input class="form-control" type="text" ng-model="data.alt">\
+                  <h4>Float</h4>\
                   <div class="btn-group">\
-                    <label class="btn btn-default" ng-model="data.alignment" uib-btn-radio="\'left\'">Left</label>\
-                    <label class="btn btn-default" ng-model="data.alignment" uib-btn-radio="\'center\'">Center</label>\
-                    <label class="btn btn-default" ng-model="data.alignment" uib-btn-radio="\'right\'">Right</label>\
+                    <label class="btn btn-default" ng-model="data.float" uib-btn-radio="\'left\'">Left</label>\
+                    <label class="btn btn-default" ng-model="data.float" uib-btn-radio="\'center\'">Center</label>\
+                    <label class="btn btn-default" ng-model="data.float" uib-btn-radio="\'right\'">Right</label>\
+                    <label class="btn btn-primary" ng-click="data.float = null">Clear</label>\
                   </div>\
-                  <button type="button" class="btn btn-primary" ng-click="data.alignment=null">Clear</button>\
-                  <h4>Styles</h4>\
-                  <input class="form-control" type="text" ng-model="data.style">\
+                  <h4>Size</h4>\
+                  <div class="btn-group">\
+                    <label class="btn btn-default" ng-model="data.percentageWidth" uib-btn-radio="\'25\'">25%</label>\
+                    <label class="btn btn-default" ng-model="data.percentageWidth" uib-btn-radio="\'50\'">50%</label>\
+                    <label class="btn btn-default" ng-model="data.percentageWidth" uib-btn-radio="\'75\'">75%</label>\
+                    <label class="btn btn-default" ng-model="data.percentageWidth" uib-btn-radio="\'100\'">100%</label>\
+                    <label class="btn btn-primary" ng-click="data.percentageWidth = null">Clear</label>\
+                  </div>\
                   <h4>Caption</h4>\
                   <input class="form-control" type="text" ng-model="data.figureCaption">\
                 </div>\
-                <button class="btn btn-transparent pull-right" style="position:absolute;right:8px;" ng-hide="editing" ng-click="toggleEdit()">Edit</button>\
-                <figure ng-class="getClasses()" style="{{data.style || \'\'}}">\
-                  <img ng-src="{{data.url}}" alt="{{data.alt || \'\'}}" class="img-responsive figure-img">\
-                  <figcaption ng-if="data.figureCaption" class="figure-caption text-center">{{data.figureCaption}}</figcaption>\
+                <button class="btn btn-transparent pull-right" style="position:absolute;right:8px;top:8px;" ng-hide="editing" ng-click="toggleEdit()">Edit</button>\
+                <figure ng-class="getClasses()" style="display: table;">\
+                  <img ng-src="{{data.url}}" alt="{{data.alt || \'\'}}" class="img-responsive figure-img" style="width:100%;">\
+                  <figcaption ng-if="data.figureCaption" class="figure-caption text-center" style="display: table-caption; caption-side: bottom;">{{data.figureCaption}}</figcaption>\
                 </figure>\
               </div>',
     scope: {
@@ -192,8 +314,8 @@ stampAngularModule
     link: function (scope, element, attrs) {
       scope.editing = false
       scope.clearAll = function () {
-        scope.data.width = null
-        scope.data.alignment = null
+        scope.data.percentageWidth = null
+        scope.data.float = null
       }
       scope.toggleEdit = function() {
         scope.editing = !scope.editing
@@ -201,7 +323,7 @@ stampAngularModule
       scope.getClasses = function() {
         let className = 'figure '
         
-        switch (scope.data.alignment) {
+        switch (scope.data.float) {
             case 'left':
                 className += 'pull-left '
                 break; 
@@ -213,6 +335,10 @@ stampAngularModule
                 break 
             default: 
                 break
+        }
+
+        if(scope.data.percentageWidth !== null && scope.data.percentageWidth !== undefined) {
+          className += 'width-' + scope.data.percentageWidth
         }
         
         return className

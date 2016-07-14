@@ -5,15 +5,13 @@
   }
 
 	var stamp = angular.module('stamp', [/*'stamp.models', */'stamp.mappers', 'stampSetup', 'ui.bootstrap'])
-	stamp.value('stampConfig', {})
-  stamp.directive('stampEditor', ['$rootScope', '$compile', '$timeout', '$window', 'stampConfig', function($rootScope, $compile, $timeout, $window, stampConfig) {
-    stampConfig = stampConfig || {}
+  stamp.directive('stampEditor', ['$rootScope', '$compile', '$timeout', '$window', 'stampOptions', function($rootScope, $compile, $timeout, $window, stampOptions) {
 
 	  var generatedIds = 0
     var IDAttrPrefix = 'ui-stamp-editor-'
 	
-    //if (stampConfig.someproperty) { // Useful for passing non-init related settings to Stamp from Angular
-    //  stamp.someproperty = stampConfig.someproperty
+    //if (stampOptions.someproperty) { // Useful for passing non-init related settings to Stamp from Angular
+    //  stamp.someproperty = stampOptions.someproperty
     //}
 
     return {
@@ -35,13 +33,13 @@
         // Merge all our settings from global and instance level
         angular.extend(expression, scope.$eval(attrs.stampOptions))
 
-        // extend options with initial stampConfig and options from directive attribute value
-        angular.extend(options, stampConfig, expression)
+        // extend options with initial stampOptions and options from directive attribute value
+        angular.extend(options, stampOptions || {}, expression)
 
         // Set all the settings
         scope.attributes = angular.extend({
-          locked: false, // Stop stack changes
-          readOnly: false // Stop content edits
+          locked: false, // Stops stack changes
+          readOnly: false // Stops content edits
         }, { 
           locked: attrs.locked ? true : false, // TODO: hook up to the html attr naming
           readOnly: attrs.readOnly ? true : false
@@ -100,7 +98,7 @@
 
           // I think the 3rd property of watch could be a better comparison here
           scope.$watch(function() { return JSON.stringify(ngModel.$modelValue) }, function( newValue, oldValue ) {
-            console.log( "ngModel value changed via model watch"/*, newValue*/ )
+            //console.log( "ngModel value changed via model watch"/*, newValue*/ )
             // Update internal reference
             scope.json = ngModel.$modelValue
           })
@@ -117,7 +115,7 @@
           // Default: Add a single column block with one text component
           scope.json.blocks.splice((index !== undefined ? index : scope.json.blocks.length), 0, {
             attributes: {
-              layout: 'oneColumn' // Want this as default, TODO: make this an option
+              layout: 'oneColumn' // Want this as default, TODO: make all this config an option
             },
             columns: [
               {
@@ -134,6 +132,10 @@
 
       },
       controller: ['$scope', function ($scope) {
+        // Use this in the component link function to order the componentControls
+        this.getAttributes = function () {
+          return $scope.attributes
+        }
 
         this.removeBlock = function (index) {
           /*let blockDeleted = */$scope.json.blocks.splice(index, 1)
@@ -152,7 +154,8 @@
     }
   }])
 
-  // This will only run on load for now as it had issues sizing correctly
+  // NOTE: Are you figuring out how to allow resizing under the initial height when on Chrome?
+  //       If so, this is your issue: https://bugs.chromium.org/p/chromium/issues/detail?id=94583
   stamp.directive("stampAutoHeight", function ($timeout) {
     return {
       restrict: 'A',
@@ -174,7 +177,7 @@
           $timeout(resize, 10) 
         })
 
-        // this was having issues calculating the right size
+        // This will only run on load for now as it had issues sizing correctly
         // element.on("blur keyup change", resize)
 
         $timeout(resize, 0)
@@ -182,7 +185,7 @@
     }
   })
 
-  stamp.directive('stampBlock', ['stampLayouts', '$uibModal', function (stampLayouts, $uibModal) {
+  stamp.directive('stampBlock', ['stampLayouts', '$uibModal', '$timeout', '$compile', 'stampBlockControls', function (stampLayouts, $uibModal, $timeout, $compile, stampBlockControls) {
     return {
       restrict: 'E',
       require: '^stampEditor',
@@ -195,13 +198,9 @@
       link: function (scope, element, attrs, parentCtrl) {
         
         scope.layouts = stampLayouts // For dropdown
-        //scope.showAddComponent = false
-        //scope.addComponentIndex = undefined
 
         // Watch for layout changes
-        scope.$watch(function(){
-          return scope.data.attributes.layout
-        }, function(newValue, oldValue) {
+        scope.$watch('data.attributes.layout', function(newValue, oldValue) {
           if(oldValue !== newValue) {
             updateLayout(oldValue, newValue)
           }
@@ -224,17 +223,48 @@
             // scope.data.attributes.layout = oldValue
             scope.blockError = 'This layout has a column limit of ' + scope.layout.maxColumns + ', the column count is ' + scope.data.columns.length
           }
-          console.log('broadcasting')
+
           scope.$broadcast('layoutChanged', scope.data.attributes.layout)
         }
+        
 
         // Note: Not sure what defaults to add at a block level
         scope.data.attributes = scope.data.attributes || {}
-        scope.data.attributes.layout = scope.data.attributes.layout || 'fluid'
+        scope.data.attributes.layout = scope.data.attributes.layout || 'oneColumn'
         
         // Manual call to get it ready for template calls to getColumnClasses
         updateLayout(undefined, scope.data.attributes.layout)
 
+        /**
+         *  CREATE Block Controls
+         */
+        function createDirective(directiveName) {
+          let parsedDirectiveName = camelToHyphen(directiveName)
+          return '<' + parsedDirectiveName + '></' + parsedDirectiveName + '>'
+        }
+        let blockControlsTemplate = ''
+        let parentAttrs = parentCtrl.getAttributes()
+        
+        // There should always be an order defined but we'll fall back anyway
+        let layoutOrder = parentAttrs && parentAttrs.blockControlLayout ? parentAttrs.blockControlLayout : Object.keys(stampBlockControls)
+
+        // Add all controls to the controls template string
+        layoutOrder.forEach(function(key) {
+          let control = stampBlockControls[key]
+          if(control && control.directive) {
+            blockControlsTemplate += createDirective(control.directive)
+          }
+        })
+
+        // Only compile the new part of the DOM to stop duplicate compiles (can trigger multi clicks in header)
+        // This was an issue only if we start recompiling this on watch changes which we now don't do
+        let wrapperEl = angular.element(element[0].getElementsByClassName('block-controls')[0])
+        wrapperEl.empty()
+        wrapperEl.append($compile(angular.element(blockControlsTemplate))(scope))
+
+        /**
+         *  APIs for template calls
+         */
         scope.getColumnClasses = function(columnIndex, isEmptyColumn) {
           
           // When getting classes for empty columns it needs to carry on from the last index
@@ -274,29 +304,6 @@
           return combinedClass
         }
 
-        scope.addComponent = function(columnIndex) {
-          
-          var modalInstance = $uibModal.open({
-            //animation: false,
-            templateUrl: '../src/angular/templates/addComponentModal.html',
-            controller: 'StampAddComponentModalInstanceCtrl'//,
-            //size: 'lg'
-          })
-
-          modalInstance.result.then(function (selectedType) {
-            scope.data.columns[columnIndex].components.push({
-              type: selectedType,
-              data: {}
-            })
-          }/*, function () {
-          }*/)
-          
-          // disabled the below for now as just using pop-ups for simplicity
-          //scope.showAddComponent = true
-          // This is so we can add it in between components eventually
-          //scope.addComponentIndex = columnIndex
-        }
-
         scope.moveUp = function() {
           parentCtrl.moveBlock(scope.blockIndex, scope.blockIndex - 1)
         }
@@ -307,16 +314,15 @@
           parentCtrl.removeBlock(scope.blockIndex)
         }
 
-        scope.changeLayout = function(layout) {
-          // When fluid we want to remove all columns
-          if(layout === 'fluid') {
-            // Loop all and merge to first column
-            while(scope.data.columns.length > 1) {
-              let column = scope.data.columns.pop()
-              // Merge to first
-              scope.data.columns[0].components = scope.data.columns[0].components.concat(column.components)
-            }
+        //TODO: Distributed merging, spread across all columns
+        scope.mergeColumns = function() {
+          while(scope.data.columns.length > 1) {
+            let column = scope.data.columns.pop()
+            // Merge to first
+            scope.data.columns[0].components = scope.data.columns[0].components.concat(column.components)
           }
+        }
+        scope.changeLayout = function(layout) {
           scope.data.attributes.layout = layout
         }
 
@@ -348,11 +354,47 @@
           // Remove
           let componentRemoved = ref.splice(componentIndex, 1)
 
+          // Make sure we don't try and insert past the current stack length
+          if(newComponentIndex === undefined || newComponentIndex > $scope.data.columns[newColumnIndex].components.length) {
+            newComponentIndex = $scope.data.columns[newColumnIndex].components.length
+          }
+
           // Add
           // Insert at top if new component index isn't passed
-          $scope.data.columns[newColumnIndex].components.splice(newComponentIndex || 0, 0, componentRemoved[0])
+          $scope.data.columns[newColumnIndex].components.splice(newComponentIndex, 0, componentRemoved[0])
 
         }
+
+        $scope.addComponent = this.addComponent = function(columnIndex, componentIndex, optionalComponent) {
+          // Allow to pass a known type, stopping popup from triggering
+          if(optionalComponent) {
+            $scope.data.columns[columnIndex].components.splice(componentIndex || $scope.data.columns[columnIndex].components.length, 0, {
+              type: optionalComponent.type,
+              data: optionalComponent.data || {}
+            })
+            // Next tick so the element can be added to the DOM and the focus set correctly
+            $timeout(function() {
+              $scope.$broadcast('componentFocus', columnIndex, componentIndex)
+            }, 0)
+            
+          } else {
+            var modalInstance = $uibModal.open({
+              //animation: false,
+              templateUrl: '../src/angular/templates/addComponentModal.html',
+              controller: 'StampAddComponentModalInstanceCtrl'//,
+              //size: 'lg'
+            })
+
+            modalInstance.result.then(function (returnObject) {
+              $scope.data.columns[columnIndex].components.splice(componentIndex || $scope.data.columns[columnIndex].components.length, 0, {
+                type: returnObject.type,
+                data: returnObject.data || {}
+              })
+              $scope.$broadcast('componentFocus', columnIndex, componentIndex)
+            }/*, function () {
+            }*/)
+          }
+        } 
       }]
     }
   }])
@@ -361,7 +403,9 @@
     $scope.components = stampComponents
 
     $scope.insert = function(selected) {
-      $uibModalInstance.close(selected)
+      // TODO: look at passing back default data by using a component hook?
+      // core already supports taking obj.data
+      $uibModalInstance.close({type:selected})
     }
     $scope.close = function() {
       $uibModalInstance.dismiss()
@@ -369,60 +413,93 @@
 
   }])
 
-  stamp.directive('stampComponent', ['$compile', 'stampComponents', function ($compile, stampComponents) {
+  stamp.directive('stampComponent', ['$compile', 'stampComponents', 'stampComponentControls', function ($compile, stampComponents, stampComponentControls) {
     return {
       restrict: 'E',
-      require: '^stampBlock',
+      require: ['^stampBlock', '^stampEditor'],
       templateUrl: '../src/angular/templates/component.html',
       scope: {
-        data: '=',
+        component: '=',
         index: '=',
-        colIndex: '=', // Column Index
+        colIndex: '=', // Column Index,
+        colCount: '=', // Column Count
         comIndex: '=', // Component Index
         comCount: '=', // Components Count
       },
-      link: function (scope, element, attrs, parentCtrl) {
-        if (!scope.data || !scope.data.type) {
+      link: function (scope, element, attrs, parentCtrls) {
+        let parentCtrlBlock = parentCtrls[0]
+        let parentCtrlEditor = parentCtrls[1]
+        
+        if (!scope.component || !scope.component.type) {
           scope.componentError = 'Missing required component data'
           return
         }
 
         // Runs on a scope watch for type as template needs to change based on type attr
         function updateTemplate() {
-          let directive = stampComponents[scope.data.type]
+          let directive = stampComponents[scope.component.type]
 
           if(!directive) {
-            scope.componentError = 'No component registered for type: ' + scope.data.type
+            scope.componentError = 'No component registered for type: ' + scope.component.type
             return
           }
 
-          let directiveName = camelToHyphen(directive.directive)
-          let template = '<' + directiveName + ' data="data.data"></' + directiveName + '>'
+          let parsedDirectiveName = camelToHyphen(directive.directive)
+          let componentTemplate = '<' + parsedDirectiveName + ' data="component.data"></' + parsedDirectiveName + '>'
+
+          let componentControlsTemplate = ''
+          let parentAttrs = parentCtrlEditor.getAttributes()
           
-          // Remove old & append to last child within the component container
-          // Only compile the new part of the DOM to stop duplicate compiles (can trigger multi clicks in header)
-          let bodyEl = angular.element(element[0].getElementsByClassName('component-body')[0])
-          bodyEl.empty()
-          bodyEl.append($compile(angular.element(template))(scope))
+          // There should always be an order defined but we'll fall back anyway
+          let layoutOrder = parentAttrs && parentAttrs.componentControlLayout ? parentAttrs.componentControlLayout : Object.keys(stampComponentControls)
+
+          // Add all controls to the controls template string
+          layoutOrder.forEach(function(key) {
+            let control = stampComponentControls[key]
+            if(control && control.directive) {
+              let parsedControlDirectiveName = camelToHyphen(control.directive)
+              componentControlsTemplate += '<' + parsedControlDirectiveName + '></' + parsedControlDirectiveName + '>'
+            }
+          })
+
+          // Append in the component itself and all controls
+          let templ = '<div class="component-header">\
+                         <p class="pull-right">' + componentControlsTemplate + '\
+                         </p>\
+                       </div>\
+                       <div ng-if="componentError" class="alert alert-danger">{{componentError}}<br><br>Component Data:<pre>{{data | json}}</pre></div>\
+                       <div class="component-body">' + componentTemplate + '</div>'
+
+          element.empty()
+          element.append($compile(angular.element(templ))(scope))
         }
 
-        scope.$watch('data.type', function (newVal, oldVal) {
+        scope.$watch('component.type', function (newVal, oldVal) {
           if(newVal !== oldVal) {
             updateTemplate()
           }
         })
         updateTemplate()
-        
+
+        // Allow component to call upwards
+        scope.addComponent = parentCtrlBlock.addComponent
+
         scope.remove = function () {
           // Send to parent to remove
-          parentCtrl.removeComponent(scope.colIndex, scope.comIndex)
+          parentCtrlBlock.removeComponent(scope.colIndex, scope.comIndex)
         }
         scope.moveUp = function() {
           // params: old col, new col, old com place, new com place
-          parentCtrl.moveComponent(scope.colIndex, scope.colIndex, scope.comIndex, scope.comIndex - 1)
+          parentCtrlBlock.moveComponent(scope.colIndex, scope.colIndex, scope.comIndex, scope.comIndex - 1)
         }
         scope.moveDown = function() {
-          parentCtrl.moveComponent(scope.colIndex, scope.colIndex, scope.comIndex, scope.comIndex + 1)
+          parentCtrlBlock.moveComponent(scope.colIndex, scope.colIndex, scope.comIndex, scope.comIndex + 1)
+        }
+        scope.moveLeft = function() {
+          parentCtrlBlock.moveComponent(scope.colIndex, scope.colIndex -1, scope.comIndex, scope.comIndex)
+        }
+        scope.moveRight = function() {
+          parentCtrlBlock.moveComponent(scope.colIndex, scope.colIndex + 1, scope.comIndex, scope.comIndex)
         }
       }
     }

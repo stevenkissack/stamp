@@ -2,13 +2,7 @@
   "name": "stamp",
   "version": "0.0.1",
   "description": "A visual component based HTML builder",
-  "scripts": {
-    "build": "rimraf dist && webpack --bail --progress --profile",
-    "server": "webpack-dev-server --history-api-fallback --inline --progress",
-    "test": "karma start",
-    "test-watch": "karma start --auto-watch --no-single-run",
-    "start": "npm run server"
-  },
+  "scripts": {},
   "repository": {
     "type": "git",
     "url": "https://github.com/stevokk/stamp.git"
