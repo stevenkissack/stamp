@@ -33,7 +33,7 @@ stampAngularModule.constant('stampRegister', {
   blockControl: stampRegisterFunctions.BlockControls
   // template: registerTemplate
 }).value('stampOptions', {
-  componentControlLayout: ['licenceControl', 'moveComponentArrows', 'removeComponent'],
+  componentControlLayout: ['moveComponentArrows', 'removeComponent'],
   blockControlLayout: ['layoutControl', 'moveBlockArrows', 'removeBlock']
   /* colClass: 'col',
   rowClass: 'row' // TODO*/
@@ -170,14 +170,14 @@ stampAngularModule.constant('stampRegister', {
   return {
     restrict: 'E',
     scope: false,
-    template: '<button type="button" class="close" ng-click="remove()" aria-label="remove"><span aria-hidden="true">&times;</span></button>'
+    template: '<button type="button" class="btn btn-default btn-xs" ng-click="remove()" aria-label="remove"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>'
   };
 }]).directive('stampChangeLayoutControl', [function () {
   return {
     restrict: 'E',
     scope: false,
     template: '<span uib-dropdown>\
-        <a href id="simple-dropdown" uib-dropdown-toggle>Layout: {{layouts[data.attributes.layout].label}}</a>\
+        <a href id="simple-dropdown" uib-dropdown-toggle class="btn btn-xs btn-default">Layout: {{layouts[data.attributes.layout].label}}</a>\
         <ul class="dropdown-menu" uib-dropdown-menu aria-labelledby="simple-dropdown">\
           <li ng-repeat="(key, value) in layouts" ng-if="value">\
             <a ng-click="changeLayout(key)">{{value.label}}</a>\
@@ -189,17 +189,21 @@ stampAngularModule.constant('stampRegister', {
   return {
     restrict: 'E',
     scope: false,
-    template: '<a ng-if="colIndex !== 0" ng-click="moveLeft()">&#9668;</a>\
-               <a ng-if="comIndex !== 0" ng-click="moveUp()">&#9650;</a>\
-               <a ng-if="comIndex !== comCount - 1" ng-click="moveDown()">&#9660;</a>\
-               <a ng-if="colIndex + 1 < colCount" ng-click="moveRight()">&#9658;</a>'
+    template: '<div class="btn-group" role="group" aria-label="...">\
+                  <button type="button" class="btn btn-default btn-xs" ng-if="colIndex !== 0" ng-click="moveLeft()">&#9668;</button>\
+                  <button type="button" class="btn btn-default btn-xs" ng-if="comIndex !== 0" ng-click="moveUp()">&#9650;</button>\
+                  <button type="button" class="btn btn-default btn-xs" ng-if="comIndex !== comCount - 1" ng-click="moveDown()">&#9660;</button>\
+                  <button type="button" class="btn btn-default btn-xs" ng-if="colIndex + 1 < colCount" ng-click="moveRight()">&#9658;</button>\
+                </div>'
   };
 }]).directive('stampMoveBlockControls', [function () {
   return {
     restrict: 'E',
     scope: false,
-    template: '<a ng-if="blockIndex !== 0" ng-click="moveUp()">&#9650;</a>\
-               <a ng-if="blockIndex !== blockCount - 1" ng-click="moveDown()">&#9660;</a>'
+    template: '<div class="btn-group" role="group" aria-label="...">\
+                  <button type="button" class="btn btn-default btn-xs" ng-if="blockIndex !== 0" ng-click="moveUp()">&#9650;</button>\
+                  <button type="button" class="btn btn-default btn-xs" ng-if="blockIndex !== blockCount - 1" ng-click="moveDown()">&#9660;</button>\
+                </div>'
   };
 }]).directive('stampEnterHandle', [function () {
   return {
@@ -268,7 +272,7 @@ stampAngularModule.constant('stampRegister', {
     restrict: 'E',
     template: '<div ng-class="{\'edit-mode\':editing}" style="position: relative;">\
                 <div ng-show="editing" class="edit-overlay">\
-                  <button class="btn pull-right" ng-click="toggleEdit()">Close</button>\
+                  <button class="btn btn-default pull-right" ng-click="toggleEdit()">Close</button>\
                   <h4>URL</h4>\
                   <input class="form-control" type="text" ng-model="data.url">\
                   <h4>Alt</h4>\

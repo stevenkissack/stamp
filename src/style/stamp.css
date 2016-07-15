@@ -14,7 +14,7 @@ stamp-editor stamp-block {
   padding: 15px 15px;
 }
 stamp-editor stamp-block .block-body {
-  padding: 0 2px !important; /* remove bootstrap row padding, add small spacing for between columns */
+  padding: 25px 2px !important; /* remove bootstrap row padding, add small spacing for block header and bottom */
 }
 stamp-editor stamp-block:hover {
   border: 1px solid #CCC;
@@ -49,17 +49,19 @@ stamp-editor .stamp-component-wrapper .component-header {
 	position: absolute;
   width: 100%;
   top: 0px;
-	left: 0;
-  background-color: rgba(237, 237, 237, 0.85);
+	left: 0;    
+	outline: 1px solid rgba(0, 125, 212, 0.8);
+  background-color: rgba(0, 125, 212, 0.8);
 	z-index:100;
 }
 stamp-editor .stamp-component-wrapper:hover .component-header {
 	opacity: 1;
-	height: 25px;
-	top: -25px;
+	height: 22px;
+	top: -22px;
 }
 stamp-editor .stamp-component-wrapper:hover {
-	border: 1px dashed #838383;
+	border: 1px dashed rgba(0, 125, 212, 0.8);
+	border-top-color: rgba(0, 125, 212, 0);
 }
 stamp-editor .stamp-component-wrapper:hover .form-control,
 stamp-editor .stamp-component-wrapper:hover .btn-default {

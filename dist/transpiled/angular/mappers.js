@@ -192,18 +192,18 @@
         stampComponentControls: stampComponentControls
       };
 
-      function outputHTML(json) {
+      function outputHTML(json, envVars) {
         try {
-          return exports.htmlMapper(mapperResources, json);
+          return exports.htmlMapper(mapperResources, json, envVars || {});
         } catch (error) {
           console.log('Warning! Failed to export Stamp JSON to HTML', error);
         }
       }
 
       return {
-        generate: function generate(json) {
+        generate: function generate(json, envVars) {
           //console.log('Called stamp.mappers.StampHTML.generate [JSON -> HTML]')
-          return outputHTML(json);
+          return outputHTML(json, envVars);
         }
       };
     }]);

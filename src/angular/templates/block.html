@@ -3,11 +3,12 @@
       <span class="block-controls"><!-- Dynamically inserts block controls --></span>
     </span>
 </div>
-<div ng-if="layout.maxColumns && layout.maxColumns < data.columns.length" class="alert alert-danger">This layout has a column limit of {{layout.maxColumns}}, the column count is {{data.columns.length}}, switch to a {{data.columns.length}} column layout</div>
-<div class="block-body">
-  <div ng-class="getColumnClasses($index)" ng-repeat="column in data.columns track by $index">
+<div ng-if="layout.maxColumns && layout.maxColumns < data.columns.length" class="alert alert-danger">This layout has a column limit of {{layout.maxColumns}}, the column count is {{data.columns.length}}, switch to a {{data.columns.length}} column layout <button class="btn btn-default" ng-click="mergeColumns()">Auto Merge</button></div>
+<div ng-if="!layout.maxColumns" class="alert alert-danger">No Layout Set</div>
+<div class="block-body" ng-if="layout.maxColumns">
+  <div ng-class="getColumnClasses($index)" ng-repeat="column in data.columns | limitTo:layout.maxColumns">
     <div class="stamp-component-wrapper component-{{$index}}" ng-repeat="component in column.components track by $index">
-      <stamp-component data-component="component" col-index="$parent.$index" com-index="$index" com-count="column.components.length" col-count="data.columns.length"></stamp-component>
+      <stamp-component data="component" col-index="$parent.$index" com-index="$index" com-count="column.components.length" col-count="data.columns.length"></stamp-component>
     </div>
     <div ng-if="!parent.locked && !parent.readOnly">
       <input ng-if="column.components.length == 0" class="btn btn-warning btn-lg btn-block" type="button" ng-click="removeColumn($index)" value="Remove Column"></input>

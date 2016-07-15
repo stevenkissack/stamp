@@ -1,4 +1,8 @@
 angular.module('stampSetup')
+.value('stampOptions',  {
+  componentControlLayout: ['licenceRestriction', 'moveComponentArrows', 'removeComponent'], // Add licence to controls
+  blockControlLayout: ['licenceRestriction', 'layoutControl', 'moveBlockArrows', 'removeBlock']
+})
 .run(['stampRegister', '$window', 'stampTranslations', function (stampRegister, $window, stampTranslations) {
 
   // Move these into core after testing this run block works
@@ -88,6 +92,98 @@ angular.module('stampSetup')
       //
     }
   }
+}])
+.directive('stampLicenceControl', ['$uibModal', function ($uibModal) {
+  return {
+    restrict: 'E',
+    scope: false,
+    template: '<button type="button" class="btn btn-{{data.attributes.licence ? \'success\' : \'default\'}} btn-xs" ng-click="openLicenceRules()"><span>Licence Rules</span></button>',
+    link: function (scope, element, attrs) {
+      scope.openLicenceRules = function () {
+        var modalInstance = $uibModal.open({
+          templateUrl: 'licenceRulesModal.html',
+          controller: 'LicenceRulesModalInstanceCtrl',
+          scope: scope
+        })
+
+        /* we're just using the same scope modalInstance.result.then(function (selectedItem) {
+          $scope.selected = selectedItem;
+        }, function () {
+          $log.info('Modal dismissed at: ' + new Date());
+        });*/
+      }
+    }
+  }
+}])
+.controller('LicenceRulesModalInstanceCtrl', ['$scope', '$uibModalInstance', function ($scope, $uibModalInstance) {
+
+  $scope.licences = [
+    {
+      name: 'UK',
+      code: 'UK'
+    },
+    {
+      name: 'COM',
+      code: 'COM'
+    },
+    {
+      name: 'ES',
+      code: 'ES'
+    },
+    {
+      name: 'IT',
+      code: 'IT'
+    },
+    {
+      name: 'EE',
+      code: 'EE'
+    },
+    {
+      name: 'DK',
+      code: 'DK'
+    },
+    {
+      name: 'BG',
+      code: 'BG'
+    },
+    {
+      name: 'BE',
+      code: 'BE'
+    },
+    {
+      name: 'EU',
+      code: 'EU'
+    },
+    {
+      name: 'NET',
+      code: 'NET'
+    },
+    {
+      name: 'FR',
+      code: 'FR'
+    },
+    {
+      name: 'SH',
+      code: 'SH'
+    },
+    {
+      name: 'NJ',
+      code: 'NJ'
+    },
+    {
+      name: 'PT',
+      code: 'PT'
+    },
+    {
+      name: 'RO',
+      code: 'RO'
+    }
+  ]
+
+  $scope.deleteLicenceRules = function () {
+    delete $scope.data.attributes.licence
+  }
+
 }])
 /* .directive('stampHtmlComponent', [function () {
   // This needs to be replaced by something more advanced

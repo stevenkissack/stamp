@@ -192,45 +192,23 @@
         stampComponentControls: stampComponentControls
       };
 
-      function outputHTML(json) {
+      function outputHTML(json, envVars) {
         try {
-          return exports.htmlMapper(mapperResources, json);
+          return exports.htmlMapper(mapperResources, json, envVars || {});
         } catch (error) {
           console.log('Warning! Failed to export Stamp JSON to HTML', error);
         }
       }
 
       return {
-        generate: function generate(json) {
+        generate: function generate(json, envVars) {
           //console.log('Called stamp.mappers.StampHTML.generate [JSON -> HTML]')
-          return outputHTML(json);
+          return outputHTML(json, envVars);
         }
       };
     }]);
   }
 })(typeof exports === 'undefined' ? window['_stampMappers'] = {} : exports);
-;(function(module) {
-try { module = angular.module("stamp"); }
-catch(err) { module = angular.module("stamp", []); }
-module.run(["$templateCache", function($templateCache) {
-  $templateCache.put("src/angular/templates/addComponentModal.html",
-    "<div class=\"stamp-modal stamp-modal-add-component modal-content\">\n" +
-    "  <div class=\"modal-header\">\n" +
-    "    <button type=\"button\" class=\"close\" aria-label=\"Close\" data-ng-click=\"close()\"><span aria-hidden=\"true\">&times;</span></button>\n" +
-    "    <h4 class=\"modal-title\">Add Component</h4>\n" +
-    "  </div>\n" +
-    "  <div class=\"modal-body\">\n" +
-    "    <div class=\"component-list\">\n" +
-    "      <div class=\"component-list-item\" data-ng-if=\"value\" data-ng-class=\"{'no-icon' : !value.icon}\" data-ng-repeat=\"(key, value) in components\" data-ng-click=\"insert(key)\">\n" +
-    "        <i class=\"{{value.icon}}\" data-ng-if=\"value.icon\"></i>\n" +
-    "        <span>{{value.label}}</span>\n" +
-    "      </div>\n" +
-    "    </div>\n" +
-    "  </div>\n" +
-    "</div>");
-}]);
-})();
-
 ;'use strict';
 
 (function () {
@@ -239,7 +217,7 @@ module.run(["$templateCache", function($templateCache) {
     return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
   }
 
-  var stamp = angular.module('stamp', [/*'stamp.models', */'stamp.mappers', 'stampSetup', 'ui.bootstrap']);
+  var stamp = angular.module('stamp', ['stamp.mappers', 'stampSetup', 'ui.bootstrap']);
   stamp.directive('stampEditor', ['$rootScope', '$compile', '$timeout', '$window', 'stampOptions', function ($rootScope, $compile, $timeout, $window, stampOptions) {
 
     var generatedIds = 0;
@@ -546,7 +524,7 @@ module.run(["$templateCache", function($templateCache) {
 
         //TODO: Distributed merging, spread across all columns
         scope.mergeColumns = function () {
-          while (scope.data.columns.length > 1) {
+          while (scope.data.columns.length > (scope.data.attributes.maxColumns || 1)) {
             var column = scope.data.columns.pop();
             // Merge to first
             scope.data.columns[0].components = scope.data.columns[0].components.concat(column.components);
@@ -646,7 +624,7 @@ module.run(["$templateCache", function($templateCache) {
       require: ['^stampBlock', '^stampEditor'],
       templateUrl: '../src/angular/templates/component.html',
       scope: {
-        component: '=',
+        data: '=',
         index: '=',
         colIndex: '=', // Column Index,
         colCount: '=', // Column Count
@@ -657,22 +635,22 @@ module.run(["$templateCache", function($templateCache) {
         var parentCtrlBlock = parentCtrls[0];
         var parentCtrlEditor = parentCtrls[1];
 
-        if (!scope.component || !scope.component.type) {
+        if (!scope.data || !scope.data.type) {
           scope.componentError = 'Missing required component data';
           return;
         }
 
         // Runs on a scope watch for type as template needs to change based on type attr
         function updateTemplate() {
-          var directive = stampComponents[scope.component.type];
+          var directive = stampComponents[scope.data.type];
 
           if (!directive) {
-            scope.componentError = 'No component registered for type: ' + scope.component.type;
+            scope.componentError = 'No component registered for type: ' + scope.data.type;
             return;
           }
 
           var parsedDirectiveName = camelToHyphen(directive.directive);
-          var componentTemplate = '<' + parsedDirectiveName + ' data="component.data"></' + parsedDirectiveName + '>';
+          var componentTemplate = '<' + parsedDirectiveName + ' data="data.data"></' + parsedDirectiveName + '>';
 
           var componentControlsTemplate = '';
           var parentAttrs = parentCtrlEditor.getAttributes();
@@ -701,7 +679,7 @@ module.run(["$templateCache", function($templateCache) {
           element.append($compile(angular.element(templ))(scope));
         }
 
-        scope.$watch('component.type', function (newVal, oldVal) {
+        scope.$watch('data.type', function (newVal, oldVal) {
           if (newVal !== oldVal) {
             updateTemplate();
           }
@@ -736,28 +714,19 @@ module.run(["$templateCache", function($templateCache) {
 try { module = angular.module("stamp"); }
 catch(err) { module = angular.module("stamp", []); }
 module.run(["$templateCache", function($templateCache) {
-  $templateCache.put("src/angular/templates/block.html",
-    "<div class=\"block-header clearfix\">\n" +
-    "    <span class=\"pull-right\">\n" +
-    "      <span class=\"block-controls\"><!-- Dynamically inserts block controls --></span>\n" +
-    "    </span>\n" +
-    "</div>\n" +
-    "<div class=\"alert alert-danger\" data-ng-if=\"layout.maxColumns && layout.maxColumns < data.columns.length\">This layout has a column limit of {{layout.maxColumns}}, the column count is {{data.columns.length}}, switch to a {{data.columns.length}} column layout</div>\n" +
-    "<div class=\"block-body\">\n" +
-    "  <div data-ng-class=\"getColumnClasses($index)\" data-ng-repeat=\"column in data.columns track by $index\">\n" +
-    "    <div class=\"stamp-component-wrapper component-{{$index}}\" data-ng-repeat=\"component in column.components track by $index\">\n" +
-    "      <stamp-component data-component=\"component\" col-index=\"$parent.$index\" com-index=\"$index\" com-count=\"column.components.length\" col-count=\"data.columns.length\"></stamp-component>\n" +
-    "    </div>\n" +
-    "    <div data-ng-if=\"!parent.locked && !parent.readOnly\">\n" +
-    "      <input class=\"btn btn-warning btn-lg btn-block\" type=\"button\" value=\"Remove Column\" data-ng-if=\"column.components.length == 0\" data-ng-click=\"removeColumn($index)\">\n" +
-    "      <input class=\"btn btn-default btn-lg btn-block\" type=\"button\" value=\"+ Component\" data-ng-click=\"addComponent($parent.$index)\">\n" +
-    "    </div>\n" +
+  $templateCache.put("src/angular/templates/addComponentModal.html",
+    "<div class=\"stamp-modal stamp-modal-add-component modal-content\">\n" +
+    "  <div class=\"modal-header\">\n" +
+    "    <button type=\"button\" class=\"close\" aria-label=\"Close\" data-ng-click=\"close()\"><span aria-hidden=\"true\">&times;</span></button>\n" +
+    "    <h4 class=\"modal-title\">Add Component</h4>\n" +
     "  </div>\n" +
-    "  <!-- enable this instead of the below option when you've added the ability to add no middle column if 3 are missing on a 3 col layout <div ng-if=\"emptyColumnCount().length > 0\" ng-class=\"getColumnClasses($index, true)\" ng-repeat=\"emptyColumn in emptyColumnCount() track by $index\">\n" +
-    "    <div ng-if=\"!parent.locked && !parent.readOnly\"><input class=\"btn btn-default btn-lg btn-block\" type=\"button\" ng-click=\"addColumn($index)\" value=\"+ Column\"></input></div>\n" +
-    "  </div>-->\n" +
-    "  <div data-ng-if=\"!parent.locked && !parent.readOnly && emptyColumnCount().length > 0\" data-ng-class=\"getColumnClasses(0, true)\">\n" +
-    "    <input class=\"btn-block btn btn-default btn-lg\" type=\"button\" value=\"+ Column\" data-ng-click=\"addColumn()\">\n" +
+    "  <div class=\"modal-body\">\n" +
+    "    <div class=\"component-list\">\n" +
+    "      <div class=\"component-list-item\" data-ng-if=\"value\" data-ng-class=\"{'no-icon' : !value.icon}\" data-ng-repeat=\"(key, value) in components\" data-ng-click=\"insert(key)\">\n" +
+    "        <i class=\"{{value.icon}}\" data-ng-if=\"value.icon\"></i>\n" +
+    "        <span>{{value.label}}</span>\n" +
+    "      </div>\n" +
+    "    </div>\n" +
     "  </div>\n" +
     "</div>");
 }]);
@@ -798,7 +767,7 @@ stampAngularModule.constant('stampRegister', {
   blockControl: stampRegisterFunctions.BlockControls
   // template: registerTemplate
 }).value('stampOptions', {
-  componentControlLayout: ['licenceControl', 'moveComponentArrows', 'removeComponent'],
+  componentControlLayout: ['moveComponentArrows', 'removeComponent'],
   blockControlLayout: ['layoutControl', 'moveBlockArrows', 'removeBlock']
   /* colClass: 'col',
   rowClass: 'row' // TODO*/
@@ -935,14 +904,14 @@ stampAngularModule.constant('stampRegister', {
   return {
     restrict: 'E',
     scope: false,
-    template: '<button type="button" class="close" ng-click="remove()" aria-label="remove"><span aria-hidden="true">&times;</span></button>'
+    template: '<button type="button" class="btn btn-default btn-xs" ng-click="remove()" aria-label="remove"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>'
   };
 }]).directive('stampChangeLayoutControl', [function () {
   return {
     restrict: 'E',
     scope: false,
     template: '<span uib-dropdown>\
-        <a href id="simple-dropdown" uib-dropdown-toggle>Layout: {{layouts[data.attributes.layout].label}}</a>\
+        <a href id="simple-dropdown" uib-dropdown-toggle class="btn btn-xs btn-default">Layout: {{layouts[data.attributes.layout].label}}</a>\
         <ul class="dropdown-menu" uib-dropdown-menu aria-labelledby="simple-dropdown">\
           <li ng-repeat="(key, value) in layouts" ng-if="value">\
             <a ng-click="changeLayout(key)">{{value.label}}</a>\
@@ -954,17 +923,21 @@ stampAngularModule.constant('stampRegister', {
   return {
     restrict: 'E',
     scope: false,
-    template: '<a ng-if="colIndex !== 0" ng-click="moveLeft()">&#9668;</a>\
-               <a ng-if="comIndex !== 0" ng-click="moveUp()">&#9650;</a>\
-               <a ng-if="comIndex !== comCount - 1" ng-click="moveDown()">&#9660;</a>\
-               <a ng-if="colIndex + 1 < colCount" ng-click="moveRight()">&#9658;</a>'
+    template: '<div class="btn-group" role="group" aria-label="...">\
+                  <button type="button" class="btn btn-default btn-xs" ng-if="colIndex !== 0" ng-click="moveLeft()">&#9668;</button>\
+                  <button type="button" class="btn btn-default btn-xs" ng-if="comIndex !== 0" ng-click="moveUp()">&#9650;</button>\
+                  <button type="button" class="btn btn-default btn-xs" ng-if="comIndex !== comCount - 1" ng-click="moveDown()">&#9660;</button>\
+                  <button type="button" class="btn btn-default btn-xs" ng-if="colIndex + 1 < colCount" ng-click="moveRight()">&#9658;</button>\
+                </div>'
   };
 }]).directive('stampMoveBlockControls', [function () {
   return {
     restrict: 'E',
     scope: false,
-    template: '<a ng-if="blockIndex !== 0" ng-click="moveUp()">&#9650;</a>\
-               <a ng-if="blockIndex !== blockCount - 1" ng-click="moveDown()">&#9660;</a>'
+    template: '<div class="btn-group" role="group" aria-label="...">\
+                  <button type="button" class="btn btn-default btn-xs" ng-if="blockIndex !== 0" ng-click="moveUp()">&#9650;</button>\
+                  <button type="button" class="btn btn-default btn-xs" ng-if="blockIndex !== blockCount - 1" ng-click="moveDown()">&#9660;</button>\
+                </div>'
   };
 }]).directive('stampEnterHandle', [function () {
   return {
@@ -1033,7 +1006,7 @@ stampAngularModule.constant('stampRegister', {
     restrict: 'E',
     template: '<div ng-class="{\'edit-mode\':editing}" style="position: relative;">\
                 <div ng-show="editing" class="edit-overlay">\
-                  <button class="btn pull-right" ng-click="toggleEdit()">Close</button>\
+                  <button class="btn btn-default pull-right" ng-click="toggleEdit()">Close</button>\
                   <h4>URL</h4>\
                   <input class="form-control" type="text" ng-model="data.url">\
                   <h4>Alt</h4>\
@@ -1114,6 +1087,38 @@ stampAngularModule.constant('stampRegister', {
     }
   };
 }]);
+;(function(module) {
+try { module = angular.module("stamp"); }
+catch(err) { module = angular.module("stamp", []); }
+module.run(["$templateCache", function($templateCache) {
+  $templateCache.put("src/angular/templates/block.html",
+    "<div class=\"block-header clearfix\">\n" +
+    "    <span class=\"pull-right\">\n" +
+    "      <span class=\"block-controls\"><!-- Dynamically inserts block controls --></span>\n" +
+    "    </span>\n" +
+    "</div>\n" +
+    "<div class=\"alert alert-danger\" data-ng-if=\"layout.maxColumns && layout.maxColumns < data.columns.length\">This layout has a column limit of {{layout.maxColumns}}, the column count is {{data.columns.length}}, switch to a {{data.columns.length}} column layout <button class=\"btn btn-default\" data-ng-click=\"mergeColumns()\">Auto Merge</button></div>\n" +
+    "<div class=\"alert alert-danger\" data-ng-if=\"!layout.maxColumns\">No Layout Set</div>\n" +
+    "<div class=\"block-body\" data-ng-if=\"layout.maxColumns\">\n" +
+    "  <div data-ng-class=\"getColumnClasses($index)\" data-ng-repeat=\"column in data.columns | limitTo:layout.maxColumns\">\n" +
+    "    <div class=\"stamp-component-wrapper component-{{$index}}\" data-ng-repeat=\"component in column.components track by $index\">\n" +
+    "      <stamp-component data=\"component\" col-index=\"$parent.$index\" com-index=\"$index\" com-count=\"column.components.length\" col-count=\"data.columns.length\"></stamp-component>\n" +
+    "    </div>\n" +
+    "    <div data-ng-if=\"!parent.locked && !parent.readOnly\">\n" +
+    "      <input class=\"btn btn-warning btn-lg btn-block\" type=\"button\" value=\"Remove Column\" data-ng-if=\"column.components.length == 0\" data-ng-click=\"removeColumn($index)\">\n" +
+    "      <input class=\"btn btn-default btn-lg btn-block\" type=\"button\" value=\"+ Component\" data-ng-click=\"addComponent($parent.$index)\">\n" +
+    "    </div>\n" +
+    "  </div>\n" +
+    "  <!-- enable this instead of the below option when you've added the ability to add no middle column if 3 are missing on a 3 col layout <div ng-if=\"emptyColumnCount().length > 0\" ng-class=\"getColumnClasses($index, true)\" ng-repeat=\"emptyColumn in emptyColumnCount() track by $index\">\n" +
+    "    <div ng-if=\"!parent.locked && !parent.readOnly\"><input class=\"btn btn-default btn-lg btn-block\" type=\"button\" ng-click=\"addColumn($index)\" value=\"+ Column\"></input></div>\n" +
+    "  </div>-->\n" +
+    "  <div data-ng-if=\"!parent.locked && !parent.readOnly && emptyColumnCount().length > 0\" data-ng-class=\"getColumnClasses(0, true)\">\n" +
+    "    <input class=\"btn-block btn btn-default btn-lg\" type=\"button\" value=\"+ Column\" data-ng-click=\"addColumn()\">\n" +
+    "  </div>\n" +
+    "</div>");
+}]);
+})();
+
 ;(function(module) {
 try { module = angular.module("stamp"); }
 catch(err) { module = angular.module("stamp", []); }

@@ -6,7 +6,7 @@
     return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
   }
 
-  var stamp = angular.module('stamp', [/*'stamp.models', */'stamp.mappers', 'stampSetup', 'ui.bootstrap']);
+  var stamp = angular.module('stamp', ['stamp.mappers', 'stampSetup', 'ui.bootstrap']);
   stamp.directive('stampEditor', ['$rootScope', '$compile', '$timeout', '$window', 'stampOptions', function ($rootScope, $compile, $timeout, $window, stampOptions) {
 
     var generatedIds = 0;
@@ -313,7 +313,7 @@
 
         //TODO: Distributed merging, spread across all columns
         scope.mergeColumns = function () {
-          while (scope.data.columns.length > 1) {
+          while (scope.data.columns.length > (scope.data.attributes.maxColumns || 1)) {
             var column = scope.data.columns.pop();
             // Merge to first
             scope.data.columns[0].components = scope.data.columns[0].components.concat(column.components);
@@ -413,7 +413,7 @@
       require: ['^stampBlock', '^stampEditor'],
       templateUrl: '../src/angular/templates/component.html',
       scope: {
-        component: '=',
+        data: '=',
         index: '=',
         colIndex: '=', // Column Index,
         colCount: '=', // Column Count
@@ -424,22 +424,22 @@
         var parentCtrlBlock = parentCtrls[0];
         var parentCtrlEditor = parentCtrls[1];
 
-        if (!scope.component || !scope.component.type) {
+        if (!scope.data || !scope.data.type) {
           scope.componentError = 'Missing required component data';
           return;
         }
 
         // Runs on a scope watch for type as template needs to change based on type attr
         function updateTemplate() {
-          var directive = stampComponents[scope.component.type];
+          var directive = stampComponents[scope.data.type];
 
           if (!directive) {
-            scope.componentError = 'No component registered for type: ' + scope.component.type;
+            scope.componentError = 'No component registered for type: ' + scope.data.type;
             return;
           }
 
           var parsedDirectiveName = camelToHyphen(directive.directive);
-          var componentTemplate = '<' + parsedDirectiveName + ' data="component.data"></' + parsedDirectiveName + '>';
+          var componentTemplate = '<' + parsedDirectiveName + ' data="data.data"></' + parsedDirectiveName + '>';
 
           var componentControlsTemplate = '';
           var parentAttrs = parentCtrlEditor.getAttributes();
@@ -468,7 +468,7 @@
           element.append($compile(angular.element(templ))(scope));
         }
 
-        scope.$watch('component.type', function (newVal, oldVal) {
+        scope.$watch('data.type', function (newVal, oldVal) {
           if (newVal !== oldVal) {
             updateTemplate();
           }
