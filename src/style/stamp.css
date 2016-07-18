@@ -110,6 +110,7 @@ stamp-editor stamp-component .edit-mode:before, stamp-editor stamp-component .ed
 	content: '';  
 	clear: both;
 }
+
 stamp-editor stamp-component .width-25 { width: 25%; }
 stamp-editor stamp-component .width-50 { width: 50%; }
 stamp-editor stamp-component .width-75 { width: 75%; }

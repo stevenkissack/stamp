@@ -1,5 +1,4 @@
 (function () {
-
   var app = angular.module('app', ['stamp', 'textAngular'])
 
   app.controller('AppCtrl', ['$scope', function ($scope) {
@@ -30,7 +29,7 @@
                 {
                   type: 'wysiwyg',
                   data: {
-                    value: '[HTML Social share icons]' 
+                    value: '[HTML Social share icons]'
                   }
                 },
                 {
@@ -260,7 +259,7 @@
         head.innerHTML = '<link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">' + '<style> .width-25 { width: 25%; } .width-50 { width: 50%; } .width-75 { width: 75%; } .width-100 { width: 100%; }</style>'
 
         scope.$watch(function () { return JSON.stringify(scope.stampMarkup) }, function () {
-          body.innerHTML = StampHTML.generate(scope.stampMarkup)
+          body.innerHTML = StampHTML.generate(scope.stampMarkup, { licence: 'COM' })
         })
       }
     }

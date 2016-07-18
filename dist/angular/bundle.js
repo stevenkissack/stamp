@@ -1,4 +1,26 @@
-'use strict';
+(function(module) {
+try { module = angular.module("stamp"); }
+catch(err) { module = angular.module("stamp", []); }
+module.run(["$templateCache", function($templateCache) {
+  $templateCache.put("src/angular/templates/addComponentModal.html",
+    "<div class=\"stamp-modal stamp-modal-add-component modal-content\">\n" +
+    "  <div class=\"modal-header\">\n" +
+    "    <button type=\"button\" class=\"close\" aria-label=\"Close\" data-ng-click=\"close()\"><span aria-hidden=\"true\">&times;</span></button>\n" +
+    "    <h4 class=\"modal-title\">Add Component</h4>\n" +
+    "  </div>\n" +
+    "  <div class=\"modal-body\">\n" +
+    "    <div class=\"component-list\">\n" +
+    "      <div class=\"component-list-item\" data-ng-if=\"value\" data-ng-class=\"{'no-icon' : !value.icon}\" data-ng-repeat=\"(key, value) in components\" data-ng-click=\"insert(key)\">\n" +
+    "        <i class=\"{{value.icon}}\" data-ng-if=\"value.icon\"></i>\n" +
+    "        <span>{{value.label}}</span>\n" +
+    "      </div>\n" +
+    "    </div>\n" +
+    "  </div>\n" +
+    "</div>");
+}]);
+})();
+
+;'use strict';
 
 (function (exports) {
 
@@ -35,6 +57,12 @@
 
     // Calls parseColumn
     function parseBlock(blockJson, blockIndex) {
+
+      if (!blockJson) {
+        // No data to render, could have been removed by a preRender control function
+        return '';
+      }
+
       // If attr exists, use it, else use oneColumn
       var layoutName = blockJson.attributes && blockJson.attributes.layout ? blockJson.attributes.layout : 'oneColumn';
       var blockLayout = mapperResources.stampLayouts[layoutName];
@@ -114,6 +142,11 @@
     }
 
     function parseComponent(componentJson, columnIndex, blockLayout) {
+
+      if (!componentJson) {
+        // No data to render, could have been removed by a preRender control function
+        return '';
+      }
 
       // check this is the correct reference:
       var componentObject = mapperResources.stampComponents[componentJson.type];
@@ -209,6 +242,38 @@
     }]);
   }
 })(typeof exports === 'undefined' ? window['_stampMappers'] = {} : exports);
+;(function(module) {
+try { module = angular.module("stamp"); }
+catch(err) { module = angular.module("stamp", []); }
+module.run(["$templateCache", function($templateCache) {
+  $templateCache.put("src/angular/templates/block.html",
+    "<div class=\"block-header clearfix\">\n" +
+    "    <span class=\"pull-right\">\n" +
+    "      <span class=\"block-controls\"><!-- Dynamically inserts block controls --></span>\n" +
+    "    </span>\n" +
+    "</div>\n" +
+    "<div class=\"alert alert-danger\" data-ng-if=\"layout.maxColumns && layout.maxColumns < data.columns.length\">This layout has a column limit of {{layout.maxColumns}}, the column count is {{data.columns.length}}, switch to a {{data.columns.length}} column layout <button class=\"btn btn-default\" data-ng-click=\"mergeColumns()\">Auto Merge</button></div>\n" +
+    "<div class=\"alert alert-danger\" data-ng-if=\"!layout.maxColumns\">No Layout Set</div>\n" +
+    "<div class=\"block-body\" data-ng-if=\"layout.maxColumns\">\n" +
+    "  <div data-ng-class=\"getColumnClasses($index)\" data-ng-repeat=\"column in data.columns | limitTo:layout.maxColumns\">\n" +
+    "    <div class=\"stamp-component-wrapper component-{{$index}}\" data-ng-repeat=\"component in column.components track by $index\">\n" +
+    "      <stamp-component data=\"component\" col-index=\"$parent.$index\" com-index=\"$index\" com-count=\"column.components.length\" col-count=\"data.columns.length\"></stamp-component>\n" +
+    "    </div>\n" +
+    "    <div data-ng-if=\"!parent.locked && !parent.readOnly\">\n" +
+    "      <input class=\"btn btn-warning btn-lg btn-block\" type=\"button\" value=\"Remove Column\" data-ng-if=\"column.components.length == 0\" data-ng-click=\"removeColumn($index)\">\n" +
+    "      <input class=\"btn btn-default btn-lg btn-block\" type=\"button\" value=\"+ Component\" data-ng-click=\"addComponent($parent.$index)\">\n" +
+    "    </div>\n" +
+    "  </div>\n" +
+    "  <!-- enable this instead of the below option when you've added the ability to add no middle column if 3 are missing on a 3 col layout <div ng-if=\"emptyColumnCount().length > 0\" ng-class=\"getColumnClasses($index, true)\" ng-repeat=\"emptyColumn in emptyColumnCount() track by $index\">\n" +
+    "    <div ng-if=\"!parent.locked && !parent.readOnly\"><input class=\"btn btn-default btn-lg btn-block\" type=\"button\" ng-click=\"addColumn($index)\" value=\"+ Column\"></input></div>\n" +
+    "  </div>-->\n" +
+    "  <div data-ng-if=\"!parent.locked && !parent.readOnly && emptyColumnCount().length > 0\" data-ng-class=\"getColumnClasses(0, true)\">\n" +
+    "    <input class=\"btn-block btn btn-default btn-lg\" type=\"button\" value=\"+ Column\" data-ng-click=\"addColumn()\">\n" +
+    "  </div>\n" +
+    "</div>");
+}]);
+})();
+
 ;'use strict';
 
 (function () {
@@ -714,20 +779,9 @@
 try { module = angular.module("stamp"); }
 catch(err) { module = angular.module("stamp", []); }
 module.run(["$templateCache", function($templateCache) {
-  $templateCache.put("src/angular/templates/addComponentModal.html",
-    "<div class=\"stamp-modal stamp-modal-add-component modal-content\">\n" +
-    "  <div class=\"modal-header\">\n" +
-    "    <button type=\"button\" class=\"close\" aria-label=\"Close\" data-ng-click=\"close()\"><span aria-hidden=\"true\">&times;</span></button>\n" +
-    "    <h4 class=\"modal-title\">Add Component</h4>\n" +
-    "  </div>\n" +
-    "  <div class=\"modal-body\">\n" +
-    "    <div class=\"component-list\">\n" +
-    "      <div class=\"component-list-item\" data-ng-if=\"value\" data-ng-class=\"{'no-icon' : !value.icon}\" data-ng-repeat=\"(key, value) in components\" data-ng-click=\"insert(key)\">\n" +
-    "        <i class=\"{{value.icon}}\" data-ng-if=\"value.icon\"></i>\n" +
-    "        <span>{{value.label}}</span>\n" +
-    "      </div>\n" +
-    "    </div>\n" +
-    "  </div>\n" +
+  $templateCache.put("src/angular/templates/component.html",
+    "<div class=\"component-wrap\">\n" +
+    "  <!-- Dynamically created in stamp.js component directive -->\n" +
     "</div>");
 }]);
 })();
@@ -765,7 +819,6 @@ stampAngularModule.constant('stampRegister', {
   componentControl: stampRegisterFunctions.ComponentControls,
   layout: stampRegisterFunctions.Layouts,
   blockControl: stampRegisterFunctions.BlockControls
-  // template: registerTemplate
 }).value('stampOptions', {
   componentControlLayout: ['moveComponentArrows', 'removeComponent'],
   blockControlLayout: ['layoutControl', 'moveBlockArrows', 'removeBlock']
@@ -787,7 +840,6 @@ stampAngularModule.constant('stampRegister', {
 }).run(['stampRegister', '$window', 'stampTranslations', function (stampRegister, $window, stampTranslations) {
 
   stampRegister.layout('oneColumn', {
-    // icon: 'square',
     label: 'One Column', // TODO: stampTranslations.layouts.oneColumn,
     maxColumns: 1,
     columnStyles: {
@@ -796,8 +848,7 @@ stampAngularModule.constant('stampRegister', {
   });
 
   stampRegister.layout('twoColumn', {
-    // icon: 'pause',
-    label: 'Two Even Columns', // TODO: stampTranslations.layouts.,
+    label: 'Two Even Columns',
     maxColumns: 2,
     columnStyles: {
       md: 6,
@@ -806,8 +857,7 @@ stampAngularModule.constant('stampRegister', {
   });
 
   stampRegister.layout('threeColumn', {
-    // icon: 'todo',
-    label: 'Three Columns', // TODO: stampTranslations.layouts.,
+    label: 'Three Columns',
     maxColumns: 3,
     columnStyles: {
       md: 4,
@@ -879,7 +929,18 @@ stampAngularModule.constant('stampRegister', {
     label: 'Table',
     directive: 'stampTableComponent',
     toHTML: function toHTML(componentJson, block) {
-      return '<table><td>TODO</td></table>';
+      var tableString = '<table class="table">';
+
+      componentJson.data.dataset.forEach(function (row, rowIndex) {
+        tableString += '<tr>';
+        row.forEach(function (cell, cellIndex) {
+          tableString += '<' + cell.type + '>' + cell.value + '</' + cell.type + '>';
+        });
+        tableString += '</tr>';
+      });
+
+      tableString += '</table>';
+      return tableString;
     }
   });
 
@@ -961,7 +1022,6 @@ stampAngularModule.constant('stampRegister', {
 }]).directive('stampTextComponent', [function () {
   return {
     restrict: 'E',
-    // require: 'ngModel',
     template: '<textarea stamp-auto-height stamp-enter-handle placeholder="Enter Text.." class="form-control" ng-model="data.value"></textarea>',
     scope: {
       data: '='
@@ -980,7 +1040,6 @@ stampAngularModule.constant('stampRegister', {
 }]).directive('stampHeadingComponent', [function () {
   return {
     restrict: 'E',
-    // require: 'ngModel',
     template: '<div class="input-group size-h{{data.size || 1}}">\
                 <input type="text" stamp-enter-handle placeholder="Enter Heading Text.." class="form-control" ng-model="data.value">\
                 <div class="input-group-btn" uib-dropdown>\
@@ -990,7 +1049,6 @@ stampAngularModule.constant('stampRegister', {
                   </ul>\
                 </div>\
               </div>',
-    // template: '<input type="text" placeholder="Enter Heading Text.." class="form-control size-h{{data.size || 1}}" ng-model="data.value">',
     scope: {
       data: '='
     },
@@ -1076,60 +1134,83 @@ stampAngularModule.constant('stampRegister', {
   // This needs to be replaced by something more advanced
   return {
     restrict: 'E',
-    template: '<div class="table">\
-                <table><td>TODO: Load table format</td></table>\
-              </div>',
+    template: '<div>\
+                <table class="table">\
+                  <tr ng-repeat="row in data.dataset">\
+                    <th ng-if="cell.type == \'th\'" ng-repeat-start="cell in row"><input type="text" class="form-control" ng-model="cell.value" ng-click="select($parent.$parent.$index, $parent.$index)"></input></th>\
+                    <td ng-if="cell.type == \'td\'" ng-repeat-end><input type="text" class="form-control" ng-model="cell.value" ng-click="select($parent.$parent.$index, $parent.$index)"></input></td>\
+                  </tr>\
+                </table>\
+               </div>\
+               <div ng-if="selectedCell">\
+                <h4>Selection Actions</h4>\
+                <button class="btn btn-default" ng-click="addRow(selectedCell.rowIndex)">+ Row Above</button>\
+                <button class="btn btn-default" ng-click="addRow(selectedCell.rowIndex + 1)">+ Row Below</button>\
+                <button class="btn btn-default" ng-click="addColumn(selectedCell.columnIndex)">+ Column Before</button>\
+                <button class="btn btn-default" ng-click="addColumn(selectedCell.columnIndex + 1)">+ Column After</button>\
+                <button class="btn btn-default" ng-click="removeRow(selectedCell.rowIndex)">Remove Row</button>\
+                <button class="btn btn-default" ng-click="removeColumn(selectedCell.columnIndex)">Remove Column</button>\
+                <button class="btn btn-warning" ng-click="cancelSelection()">Close</button>\
+               </div>',
     scope: {
       data: '='
     },
     link: function link(scope, element, attrs) {
-      //
+      scope.cancelSelection = function () {
+        scope.selectedCell = false;
+      };
+      scope.select = function (rowIndex, columnIndex) {
+        scope.selectedCell = { rowIndex: rowIndex, columnIndex: columnIndex };
+      };
+      scope.selectedCell = false; // Store selected cell here so we can give context controls
+      // Default data
+      if (!scope.data.dataset) {
+        scope.data.dataset = [[// These are TR
+        { type: 'th', value: 'Header 1' /*, width: ''*/ }, // TODO: Support widths (& styles?)
+        { type: 'th', value: 'Header 2' /*, width: ''*/ }, // TODO: Support colspans
+        { type: 'th', value: 'Header 3' /*, width: ''*/ }], [{ type: 'td', value: 'Value 1' }, { type: 'td', value: 'Value 2' }, { type: 'td', value: 'Value 3' }]];
+      } else {
+        // Existing data..
+      }
+      scope.addRow = function (index) {
+        // TODO: if the header has a colspan it'll break
+        var cellCount = scope.data.dataset[0].length;
+        var cells = [];
+        // Populate each item with empty data
+        for (var c = 0, cl = cellCount; c < cl; c++) {
+          cells.push({ type: 'td', value: '' });
+        }
+        // Add row
+        scope.data.dataset.splice(index === undefined ? scope.data.dataset.length : index, 0, cells);
+        scope.cancelSelection();
+      };
+      scope.removeRow = function (index) {
+        scope.data.dataset.splice(index, 1);
+        scope.cancelSelection();
+      };
+      scope.addColumn = function (index) {
+        var dataset = scope.data.dataset;
+
+        for (var d = 0, dl = dataset.length; d < dl; d++) {
+          // Create new cell matching the type of the first in the row
+          var cell = { type: dataset[d][0].type, value: '' };
+          // Guard against adding out of range - TODO: what is the side effect of doing so?
+          dataset[d].splice(dataset[d].length > index ? index : dataset[d].length, 0, cell);
+        }
+        scope.cancelSelection();
+      };
+      scope.removeColumn = function (index) {
+        var dataset = scope.data.dataset;
+        for (var d = 0, dl = dataset.length; d < dl; d++) {
+          if (dataset[d].length >= index) {
+            dataset[d].splice(index, 1);
+          }
+        }
+        scope.cancelSelection();
+      };
     }
   };
 }]);
-;(function(module) {
-try { module = angular.module("stamp"); }
-catch(err) { module = angular.module("stamp", []); }
-module.run(["$templateCache", function($templateCache) {
-  $templateCache.put("src/angular/templates/block.html",
-    "<div class=\"block-header clearfix\">\n" +
-    "    <span class=\"pull-right\">\n" +
-    "      <span class=\"block-controls\"><!-- Dynamically inserts block controls --></span>\n" +
-    "    </span>\n" +
-    "</div>\n" +
-    "<div class=\"alert alert-danger\" data-ng-if=\"layout.maxColumns && layout.maxColumns < data.columns.length\">This layout has a column limit of {{layout.maxColumns}}, the column count is {{data.columns.length}}, switch to a {{data.columns.length}} column layout <button class=\"btn btn-default\" data-ng-click=\"mergeColumns()\">Auto Merge</button></div>\n" +
-    "<div class=\"alert alert-danger\" data-ng-if=\"!layout.maxColumns\">No Layout Set</div>\n" +
-    "<div class=\"block-body\" data-ng-if=\"layout.maxColumns\">\n" +
-    "  <div data-ng-class=\"getColumnClasses($index)\" data-ng-repeat=\"column in data.columns | limitTo:layout.maxColumns\">\n" +
-    "    <div class=\"stamp-component-wrapper component-{{$index}}\" data-ng-repeat=\"component in column.components track by $index\">\n" +
-    "      <stamp-component data=\"component\" col-index=\"$parent.$index\" com-index=\"$index\" com-count=\"column.components.length\" col-count=\"data.columns.length\"></stamp-component>\n" +
-    "    </div>\n" +
-    "    <div data-ng-if=\"!parent.locked && !parent.readOnly\">\n" +
-    "      <input class=\"btn btn-warning btn-lg btn-block\" type=\"button\" value=\"Remove Column\" data-ng-if=\"column.components.length == 0\" data-ng-click=\"removeColumn($index)\">\n" +
-    "      <input class=\"btn btn-default btn-lg btn-block\" type=\"button\" value=\"+ Component\" data-ng-click=\"addComponent($parent.$index)\">\n" +
-    "    </div>\n" +
-    "  </div>\n" +
-    "  <!-- enable this instead of the below option when you've added the ability to add no middle column if 3 are missing on a 3 col layout <div ng-if=\"emptyColumnCount().length > 0\" ng-class=\"getColumnClasses($index, true)\" ng-repeat=\"emptyColumn in emptyColumnCount() track by $index\">\n" +
-    "    <div ng-if=\"!parent.locked && !parent.readOnly\"><input class=\"btn btn-default btn-lg btn-block\" type=\"button\" ng-click=\"addColumn($index)\" value=\"+ Column\"></input></div>\n" +
-    "  </div>-->\n" +
-    "  <div data-ng-if=\"!parent.locked && !parent.readOnly && emptyColumnCount().length > 0\" data-ng-class=\"getColumnClasses(0, true)\">\n" +
-    "    <input class=\"btn-block btn btn-default btn-lg\" type=\"button\" value=\"+ Column\" data-ng-click=\"addColumn()\">\n" +
-    "  </div>\n" +
-    "</div>");
-}]);
-})();
-
-;(function(module) {
-try { module = angular.module("stamp"); }
-catch(err) { module = angular.module("stamp", []); }
-module.run(["$templateCache", function($templateCache) {
-  $templateCache.put("src/angular/templates/component.html",
-    "<div class=\"component-wrap\">\n" +
-    "  <!-- Dynamically created in stamp.js component directive -->\n" +
-    "</div>");
-}]);
-})();
-
 ;(function(module) {
 try { module = angular.module("stamp"); }
 catch(err) { module = angular.module("stamp", []); }

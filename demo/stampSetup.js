@@ -37,28 +37,34 @@ angular.module('stampSetup')
     }
   })*/
 
+  function preFilterControl() {
+    let item = arguments[0]
+      // If called with an environment variable for current licence
+      if (this.licence && item.attributes && item.attributes.licence) {
+        let licence = item.attributes.licence
+        if(licence.licences.indexOf(this.licence) !== -1) {
+          // Found in array
+          item = licence.mode === 'exclude' ? false : item
+        } else {
+          // Not found in array
+          item = licence.mode === 'include' ? false : item
+        }
+      }
+      return item
+  }
+
   stampRegister.componentControl('licenceRestriction', {
     icon: 'fa fa-code',
     label: 'Licence Restrictions',
     directive: 'stampLicenceControl',
-    preRender: function (componentData) {
-      return componentData
-    },
-    postRender: function (componentHTML) {
-      return componentHTML
-    }
+    preRender: preFilterControl
   })
 
   stampRegister.blockControl('licenceRestriction', {
     icon: 'fa fa-code',
     label: 'Licence Restrictions',
     directive: 'stampLicenceControl',
-    preRender: function (blockData) {
-      return blockData
-    },
-    postRender: function (blockHTML) {
-      return blockHTML
-    }
+    preRender: preFilterControl
   })
 
   /* stampRegister.component('html', {

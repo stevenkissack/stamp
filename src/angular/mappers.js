@@ -33,6 +33,12 @@
 
     // Calls parseColumn
     function parseBlock(blockJson, blockIndex) {
+
+      if(!blockJson) {
+        // No data to render, could have been removed by a preRender control function
+        return ''
+      }
+
       // If attr exists, use it, else use oneColumn
       let layoutName = blockJson.attributes && blockJson.attributes.layout ? blockJson.attributes.layout : 'oneColumn'
       let blockLayout = mapperResources.stampLayouts[layoutName]
@@ -114,6 +120,11 @@
     
 
     function parseComponent(componentJson, columnIndex, blockLayout) {
+
+      if(!componentJson) {
+        // No data to render, could have been removed by a preRender control function
+        return ''
+      }
 
       // check this is the correct reference:
       let componentObject = mapperResources.stampComponents[componentJson.type]

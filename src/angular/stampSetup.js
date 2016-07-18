@@ -30,7 +30,6 @@ stampAngularModule
   componentControl: stampRegisterFunctions.ComponentControls,
   layout: stampRegisterFunctions.Layouts,
   blockControl: stampRegisterFunctions.BlockControls
-  // template: registerTemplate
 })
 .value('stampOptions',  {
   componentControlLayout: ['moveComponentArrows', 'removeComponent'],
@@ -55,7 +54,6 @@ stampAngularModule
 .run(['stampRegister', '$window', 'stampTranslations', function (stampRegister, $window, stampTranslations) {
 
   stampRegister.layout('oneColumn', {
-    // icon: 'square',
     label: 'One Column', // TODO: stampTranslations.layouts.oneColumn,
     maxColumns: 1,
     columnStyles: {
@@ -64,8 +62,7 @@ stampAngularModule
   })
 
   stampRegister.layout('twoColumn', {
-    // icon: 'pause',
-    label: 'Two Even Columns', // TODO: stampTranslations.layouts.,
+    label: 'Two Even Columns',
     maxColumns: 2,
     columnStyles: {
       md: 6,
@@ -74,8 +71,7 @@ stampAngularModule
   })
 
   stampRegister.layout('threeColumn', {
-    // icon: 'todo',
-    label: 'Three Columns', // TODO: stampTranslations.layouts.,
+    label: 'Three Columns',
     maxColumns: 3,
     columnStyles: {
       md: 4,
@@ -147,7 +143,18 @@ stampAngularModule
     label: 'Table',
     directive: 'stampTableComponent',
     toHTML: function(componentJson, block) {
-      return '<table><td>TODO</td></table>'
+      let tableString = '<table class="table">'
+
+      componentJson.data.dataset.forEach(function(row, rowIndex) {
+          tableString += '<tr>'
+          row.forEach(function(cell, cellIndex) {
+            tableString += '<' + cell.type + '>' + cell.value + '</' + cell.type + '>'
+          })
+          tableString += '</tr>'
+      })
+
+      tableString += '</table>'
+      return tableString
     }
   })
   
@@ -236,7 +243,6 @@ stampAngularModule
 .directive('stampTextComponent', [function () {
   return {
     restrict: 'E',
-    // require: 'ngModel',
     template: '<textarea stamp-auto-height stamp-enter-handle placeholder="Enter Text.." class="form-control" ng-model="data.value"></textarea>',
     scope: {
       data: '='
@@ -256,7 +262,6 @@ stampAngularModule
 .directive('stampHeadingComponent', [function () {
   return {
     restrict: 'E',
-    // require: 'ngModel',
     template: '<div class="input-group size-h{{data.size || 1}}">\
                 <input type="text" stamp-enter-handle placeholder="Enter Heading Text.." class="form-control" ng-model="data.value">\
                 <div class="input-group-btn" uib-dropdown>\
@@ -266,7 +271,6 @@ stampAngularModule
                   </ul>\
                 </div>\
               </div>',
-    // template: '<input type="text" placeholder="Enter Heading Text.." class="form-control size-h{{data.size || 1}}" ng-model="data.value">',
     scope: {
       data: '='
     },
@@ -354,14 +358,88 @@ stampAngularModule
   // This needs to be replaced by something more advanced
   return {
     restrict: 'E',
-    template: '<div class="table">\
-                <table><td>TODO: Load table format</td></table>\
-              </div>',
+    template: '<div>\
+                <table class="table">\
+                  <tr ng-repeat="row in data.dataset">\
+                    <th ng-if="cell.type == \'th\'" ng-repeat-start="cell in row"><input type="text" class="form-control" ng-model="cell.value" ng-click="select($parent.$parent.$index, $parent.$index)"></input></th>\
+                    <td ng-if="cell.type == \'td\'" ng-repeat-end><input type="text" class="form-control" ng-model="cell.value" ng-click="select($parent.$parent.$index, $parent.$index)"></input></td>\
+                  </tr>\
+                </table>\
+               </div>\
+               <div ng-if="selectedCell">\
+                <h4>Selection Actions</h4>\
+                <button class="btn btn-default" ng-click="addRow(selectedCell.rowIndex)">+ Row Above</button>\
+                <button class="btn btn-default" ng-click="addRow(selectedCell.rowIndex + 1)">+ Row Below</button>\
+                <button class="btn btn-default" ng-click="addColumn(selectedCell.columnIndex)">+ Column Before</button>\
+                <button class="btn btn-default" ng-click="addColumn(selectedCell.columnIndex + 1)">+ Column After</button>\
+                <button class="btn btn-default" ng-click="removeRow(selectedCell.rowIndex)">Remove Row</button>\
+                <button class="btn btn-default" ng-click="removeColumn(selectedCell.columnIndex)">Remove Column</button>\
+                <button class="btn btn-warning" ng-click="cancelSelection()">Close</button>\
+               </div>',
     scope: {
       data: '='
     },
     link: function (scope, element, attrs) {
-      //
+      scope.cancelSelection = function() {
+        scope.selectedCell = false
+      }
+      scope.select = function(rowIndex, columnIndex) {
+        scope.selectedCell = { rowIndex: rowIndex, columnIndex: columnIndex}
+      }
+      scope.selectedCell = false // Store selected cell here so we can give context controls
+      // Default data
+      if(!scope.data.dataset) {
+        scope.data.dataset = [
+          [ // These are TR
+            { type: 'th', value: 'Header 1'/*, width: ''*/ }, // TODO: Support widths (& styles?)
+            { type: 'th', value: 'Header 2'/*, width: ''*/ }, // TODO: Support colspans
+            { type: 'th', value: 'Header 3'/*, width: ''*/ }
+          ],
+          [
+            { type: 'td', value: 'Value 1' },
+            { type: 'td', value: 'Value 2' },
+            { type: 'td', value: 'Value 3' }
+          ]
+        ]
+      } else {
+        // Existing data..
+      }
+      scope.addRow = function(index) {
+        // TODO: if the header has a colspan it'll break
+        let cellCount = scope.data.dataset[0].length
+        let cells = []
+        // Populate each item with empty data
+        for(var c = 0, cl = cellCount; c < cl; c++) {
+          cells.push({ type: 'td', value: '' })
+        }
+        // Add row
+        scope.data.dataset.splice(index === undefined ? scope.data.dataset.length : index, 0, cells)
+        scope.cancelSelection()
+      }
+      scope.removeRow = function(index) {
+        scope.data.dataset.splice(index, 1)
+        scope.cancelSelection()
+      }
+      scope.addColumn = function (index) {
+        let dataset = scope.data.dataset
+
+        for(var d = 0, dl = dataset.length; d < dl; d++) {
+          // Create new cell matching the type of the first in the row
+          let cell = { type: dataset[d][0].type, value: '' }
+          // Guard against adding out of range - TODO: what is the side effect of doing so?
+          dataset[d].splice(dataset[d].length > index ? index : dataset[d].length, 0, cell)
+        }
+        scope.cancelSelection()
+      }
+      scope.removeColumn = function (index) {
+        let dataset = scope.data.dataset
+        for(var d = 0, dl = dataset.length; d < dl; d++) {
+          if(dataset[d].length >= index) {
+            dataset[d].splice(index, 1)
+          }
+        }
+        scope.cancelSelection()
+      }
     }
   }
 }])
